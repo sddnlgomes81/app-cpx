@@ -1,0 +1,6 @@
+{
+  "name": "Compatix OS",
+  "description": "Sistema de Gestão e Ordens de Serviço para Assistência Técnica de Impressoras",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
