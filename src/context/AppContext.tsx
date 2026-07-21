@@ -19,6 +19,13 @@ import {
   initialAuditLogs,
   initialCompanySettings,
 } from '../data/initialData';
+import {
+  supabase,
+  checkSupabaseStatus,
+  pullFromSupabase,
+  pushToSupabase,
+  SyncStatus,
+} from '../lib/supabase';
 
 interface AppContextType {
   currentUser: User | null;
@@ -54,6 +61,15 @@ interface AppContextType {
   updateCompanySettings: (settings: CompanySettings) => void;
   addAuditLog: (operation: string, module: string, details: string) => void;
   restoreBackup: (data: any) => void;
+  supabaseStatus: SyncStatus | null;
+  isSyncing: boolean;
+  lastSyncTime: string | null;
+  syncError: string | null;
+  autoSync: boolean;
+  setAutoSync: (val: boolean) => void;
+  pushDataToCloud: () => Promise<boolean>;
+  pullDataFromCloud: () => Promise<boolean>;
+  checkSupabaseReady: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -106,10 +122,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
+  // Supabase Sync States
+  const [supabaseStatus, setSupabaseStatus] = useState<SyncStatus | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
+    return localStorage.getItem('compatix_last_sync_time') || null;
+  });
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [autoSync, setAutoSync] = useState<boolean>(() => {
+    return localStorage.getItem('compatix_auto_sync') === 'true';
+  });
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem('compatix_users', JSON.stringify(users));
   }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem('compatix_auto_sync', String(autoSync));
+  }, [autoSync]);
 
   useEffect(() => {
     if (currentUser) {
@@ -155,7 +186,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const now = new Date().getTime();
         
         const updated = prev.map((os) => {
-          // Atualiza prioridade apenas para OS que ainda não tiveram o orçamento finalizado/aprovado
+          // Os updates are identical
           if (os.status === 'Aguardando Atendimento' || os.status === 'Aguardando Orçamento') {
             const createdTime = new Date(os.createdAt).getTime();
             const diffHours = (now - createdTime) / (1000 * 60 * 60);
@@ -188,6 +219,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const interval = setInterval(checkPriorities, 60000); // Check every minute
     return () => clearInterval(interval);
   }, []);
+
+  // Supabase Setup Check & Auto Sync Effect
+  const checkSupabaseReady = async () => {
+    const status = await checkSupabaseStatus();
+    setSupabaseStatus(status);
+  };
+
+  useEffect(() => {
+    checkSupabaseReady();
+  }, []);
+
+  useEffect(() => {
+    if (!autoSync || !supabaseStatus?.tablesReady) return;
+
+    const timer = setTimeout(() => {
+      pushToSupabase({
+        users,
+        clients,
+        printers,
+        products,
+        serviceOrders,
+        cashTransactions,
+        auditLogs,
+        companySettings
+      }).then(() => {
+        const now = new Date().toISOString();
+        setLastSyncTime(now);
+        localStorage.setItem('compatix_last_sync_time', now);
+      }).catch(err => {
+        console.error('Silent auto-sync failed:', err);
+      });
+    }, 4000); // 4 seconds debounce
+
+    return () => clearTimeout(timer);
+  }, [autoSync, supabaseStatus?.tablesReady, users, clients, printers, products, serviceOrders, cashTransactions, auditLogs, companySettings]);
 
   const addAuditLog = (operation: string, module: string, details: string) => {
     const newLog: AuditLog = {
@@ -433,6 +499,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addAuditLog('Restauração de Backup', 'Sistema', 'Backup do banco de dados restaurado com sucesso.');
   };
 
+  const pushDataToCloud = async () => {
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      await pushToSupabase({
+        users,
+        clients,
+        printers,
+        products,
+        serviceOrders,
+        cashTransactions,
+        auditLogs,
+        companySettings
+      });
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      localStorage.setItem('compatix_last_sync_time', now);
+      addAuditLog('Sincronização Cloud', 'Sistema', 'Dados locais enviados para o Supabase.');
+      setIsSyncing(false);
+      return true;
+    } catch (err: any) {
+      setSyncError(err?.message || String(err));
+      setIsSyncing(false);
+      return false;
+    }
+  };
+
+  const pullDataFromCloud = async () => {
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const cloudData = await pullFromSupabase();
+      if (cloudData.users) setUsers(cloudData.users);
+      if (cloudData.clients) setClients(cloudData.clients);
+      if (cloudData.printers) setPrinters(cloudData.printers);
+      if (cloudData.products) setProducts(cloudData.products);
+      if (cloudData.serviceOrders) setServiceOrders(cloudData.serviceOrders);
+      if (cloudData.cashTransactions) setCashTransactions(cloudData.cashTransactions);
+      if (cloudData.auditLogs) setAuditLogs(cloudData.auditLogs);
+      if (cloudData.companySettings) setCompanySettings(cloudData.companySettings);
+
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      localStorage.setItem('compatix_last_sync_time', now);
+      addAuditLog('Sincronização Cloud', 'Sistema', 'Dados importados do Supabase com sucesso.');
+      setIsSyncing(false);
+      return true;
+    } catch (err: any) {
+      setSyncError(err?.message || String(err));
+      setIsSyncing(false);
+      return false;
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -469,6 +589,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateCompanySettings,
         addAuditLog,
         restoreBackup,
+        supabaseStatus,
+        isSyncing,
+        lastSyncTime,
+        syncError,
+        autoSync,
+        setAutoSync,
+        pushDataToCloud,
+        pullDataFromCloud,
+        checkSupabaseReady,
       }}
     >
       {children}
