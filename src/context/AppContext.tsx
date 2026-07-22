@@ -368,32 +368,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(interval);
   }, [autoSync, supabaseStatus?.tablesReady, initialPullDone]);
 
-  // Push local changes to Supabase (debounced by 3 seconds) ONLY AFTER initial hydration is done
-  useEffect(() => {
-    if (!autoSync || !supabaseStatus?.tablesReady || !initialPullDone) return;
-
-    const timer = setTimeout(() => {
-      pushToSupabase({
-        users,
-        clients,
-        printers,
-        products,
-        serviceOrders,
-        cashTransactions,
-        auditLogs,
-        companySettings
-      }).then(() => {
-        const now = new Date().toISOString();
-        setLastSyncTime(now);
-        localStorage.setItem('compatix_last_sync_time', now);
-      }).catch(err => {
-        console.error('Silent auto-sync failed:', err);
-      });
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [autoSync, supabaseStatus?.tablesReady, initialPullDone, users, clients, printers, products, serviceOrders, cashTransactions, auditLogs, companySettings]);
-
   const addAuditLog = (operation: string, module: string, details: string) => {
     const newLog: AuditLog = {
       id: 'log-' + Date.now() + Math.random().toString(36).substr(2, 5),
@@ -405,6 +379,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       details,
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_audit_logs').upsert([newLog]);
+        } catch (e) {
+          console.error('Supabase AuditLog insert error:', e);
+        }
+      })();
+    }
   };
 
   const login = (emailOrUser: string, pass: string) => {
@@ -437,6 +420,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUserPassword = (userId: string, newPass: string) => {
+    let updatedUser: User | null = null;
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
@@ -444,34 +428,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (currentUser && currentUser.id === userId) {
             setCurrentUser(updated);
           }
+          updatedUser = updated;
           return updated;
         }
         return u;
       })
     );
     addAuditLog('Alteração de Senha', 'Configurações', `Senha alterada para o usuário ID ${userId}.`);
+    if (updatedUser && supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_users').upsert([updatedUser]);
+        } catch (e) {
+          console.error('Error updating user password in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const addUser = (userData: Omit<User, 'id'>) => {
     const newUser: User = {
       ...userData,
-      id: 'usr-' + Date.now(),
+      id: 'usr-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
     };
     setUsers((prev) => [...prev, newUser]);
     addAuditLog('Cadastro de Usuário', 'Usuários', `Novo usuário criado: ${newUser.name} (${newUser.role})`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_users').upsert([newUser]);
+        } catch (e) {
+          console.error('Error adding user to Supabase:', e);
+        }
+      })();
+    }
   };
 
   const toggleUserStatus = (userId: string) => {
+    let updatedUser: User | null = null;
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
           const newStatus = u.status === 'Ativo' ? 'Inativo' : 'Ativo';
           addAuditLog('Alteração Status Usuário', 'Usuários', `Usuário ${u.name} teve status alterado para ${newStatus}`);
-          return { ...u, status: newStatus };
+          updatedUser = { ...u, status: newStatus };
+          return updatedUser;
         }
         return u;
       })
     );
+    if (updatedUser && supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_users').upsert([updatedUser]);
+        } catch (e) {
+          console.error('Error toggling user status in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const updateUser = (user: User) => {
@@ -479,6 +493,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addAuditLog('Atualização de Usuário', 'Usuários', `Dados atualizados para o usuário: ${user.name}`);
     if (currentUser?.id === user.id) {
       setCurrentUser(user);
+    }
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_users').upsert([user]);
+        } catch (e) {
+          console.error('Error updating user in Supabase:', e);
+        }
+      })();
     }
   };
 
@@ -500,17 +523,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addClient = (clientData: Omit<Client, 'id' | 'createdAt'>): Client => {
     const newClient: Client = {
       ...clientData,
-      id: 'cli-' + Date.now(),
+      id: 'cli-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       createdAt: new Date().toISOString(),
     };
     setClients((prev) => [...prev, newClient]);
     addAuditLog('Cadastro de Cliente', 'Atendimento', `Cliente cadastrado: ${newClient.name}`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_clients').upsert([newClient]);
+        } catch (e) {
+          console.error('Error adding client to Supabase:', e);
+        }
+      })();
+    }
     return newClient;
   };
 
   const updateClient = (client: Client) => {
     setClients((prev) => prev.map((c) => (c.id === client.id ? client : c)));
     addAuditLog('Atualização de Cliente', 'Atendimento', `Dados atualizados para o cliente: ${client.name}`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_clients').upsert([client]);
+        } catch (e) {
+          console.error('Error updating client in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const deleteClient = async (clientId: string) => {
@@ -534,17 +575,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPrinter = (printerData: Omit<Printer, 'id' | 'createdAt'>): Printer => {
     const newPrinter: Printer = {
       ...printerData,
-      id: 'prt-' + Date.now(),
+      id: 'prt-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       createdAt: new Date().toISOString(),
     };
     setPrinters((prev) => [...prev, newPrinter]);
     addAuditLog('Cadastro de Impressora', 'Atendimento', `Impressora cadastrada: ${newPrinter.brand} ${newPrinter.model} (S/N: ${newPrinter.serialNumber})`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_printers').upsert([newPrinter]);
+        } catch (e) {
+          console.error('Error adding printer to Supabase:', e);
+        }
+      })();
+    }
     return newPrinter;
   };
 
   const updatePrinter = (printer: Printer) => {
     setPrinters((prev) => prev.map((p) => (p.id === printer.id ? printer : p)));
     addAuditLog('Atualização de Impressora', 'Atendimento', `Impressora atualizada: ${printer.brand} ${printer.model}`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_printers').upsert([printer]);
+        } catch (e) {
+          console.error('Error updating printer in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const deletePrinter = async (printerId: string) => {
@@ -570,7 +629,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newOs: ServiceOrder = {
       ...osData,
-      id: 'os-' + Date.now(),
+      id: 'os-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       osNumber,
       createdAt: now,
       updatedAt: now,
@@ -578,10 +637,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setServiceOrders((prev) => [newOs, ...prev]);
     addAuditLog('Abertura de Ordem de Serviço', 'Atendimento', `OS ${osNumber} aberta com sucesso.`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_service_orders').upsert([{
+            ...newOs,
+            usedParts: JSON.stringify(newOs.usedParts)
+          }]);
+        } catch (e) {
+          console.error('Error adding Service Order to Supabase:', e);
+        }
+      })();
+    }
     return newOs;
   };
 
   const updateServiceOrder = (id: string, updates: Partial<ServiceOrder>) => {
+    let targetOs: ServiceOrder | null = null;
     setServiceOrders((prev) =>
       prev.map((os) => {
         if (os.id === id) {
@@ -591,10 +663,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             updatedAt: new Date().toISOString(),
           };
 
-          // If parts were added and status is changing or parts updated, handle inventory deduction if needed
           if (updates.usedParts && updates.usedParts !== os.usedParts) {
-            // Deduct parts from stock if status requires or quote approved
-            // We can also calculate partsCost
             const pCost = updates.usedParts.reduce((acc, p) => acc + p.totalPrice, 0);
             updated.partsCost = pCost;
             updated.totalAmount = pCost + (updates.laborCost !== undefined ? updates.laborCost : os.laborCost);
@@ -610,31 +679,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             `Status alterado para: ${updates.status || os.status}`
           );
 
+          targetOs = updated;
           return updated;
         }
         return os;
       })
     );
+
+    if (targetOs && supabaseStatus?.tablesReady) {
+      const osToSave = targetOs;
+      (async () => {
+        try {
+          await supabase.from('compatix_service_orders').upsert([{
+            ...(osToSave as ServiceOrder),
+            usedParts: JSON.stringify((osToSave as ServiceOrder).usedParts)
+          }]);
+        } catch (e) {
+          console.error('Error updating Service Order in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const addProduct = (productData: Omit<Product, 'id'>) => {
     const newProd: Product = {
       ...productData,
-      id: 'prod-' + Date.now(),
+      id: 'prod-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
     };
     setProducts((prev) => [...prev, newProd]);
     addAuditLog('Cadastro de Produto', 'Estoque', `Produto/Peça cadastrado: ${newProd.name} (${newProd.code})`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_products').upsert([newProd]);
+        } catch (e) {
+          console.error('Error adding product to Supabase:', e);
+        }
+      })();
+    }
   };
 
   const updateProduct = (product: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
     addAuditLog('Atualização de Produto', 'Estoque', `Produto atualizado: ${product.name}`);
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_products').upsert([product]);
+        } catch (e) {
+          console.error('Error updating product in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const addCashTransaction = (trxData: Omit<CashTransaction, 'id' | 'date'>) => {
     const newTrx: CashTransaction = {
       ...trxData,
-      id: 'trx-' + Date.now(),
+      id: 'trx-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       date: new Date().toISOString(),
     };
     setCashTransactions((prev) => [newTrx, ...prev]);
@@ -643,11 +745,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'Financeiro',
       `${trxData.type}: R$ ${trxData.amount.toFixed(2)} - ${trxData.description}`
     );
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_cash_transactions').upsert([newTrx]);
+        } catch (e) {
+          console.error('Error adding cash transaction to Supabase:', e);
+        }
+      })();
+    }
   };
 
   const updateCompanySettings = (settings: CompanySettings) => {
     setCompanySettings(settings);
     addAuditLog('Atualização Dados Empresa', 'Configurações', 'Dados cadastrais da empresa atualizados.');
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_company_settings').upsert([{ ...settings, id: 'settings-id' }]);
+        } catch (e) {
+          console.error('Error updating company settings in Supabase:', e);
+        }
+      })();
+    }
   };
 
   const restoreBackup = (data: any) => {
