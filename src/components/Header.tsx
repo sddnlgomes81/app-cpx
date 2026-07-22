@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Bell, Clock, Search, ShieldCheck, Sparkles, RefreshCw } from 'lucide-react';
+import { Bell, Clock, Search, ShieldCheck, Sparkles, RefreshCw, Menu } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { currentUser, serviceOrders, activeTab } = useApp();
+  const { currentUser, serviceOrders, activeTab, setMobileMenuOpen } = useApp();
   const [timeStr, setTimeStr] = useState('');
   const [syncing, setSyncing] = useState(false);
 
@@ -62,10 +62,17 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-xs z-10">
-      <div className="flex items-center gap-4">
-        <h2 className="font-bold text-slate-800 text-base">{getModuleTitle()}</h2>
-        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-[11px] font-medium">
+    <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-xs z-10">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-all shrink-0"
+          title="Abrir menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <h2 className="font-bold text-slate-800 text-sm sm:text-base truncate">{getModuleTitle()}</h2>
+        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-[11px] font-medium shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           Firestore Realtime Sync
         </div>

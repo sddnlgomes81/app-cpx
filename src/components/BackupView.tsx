@@ -124,7 +124,7 @@ export const BackupView: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-full max-w-4xl mx-auto pb-16">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-slate-50 min-h-full max-w-4xl mx-auto pb-16">
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-800">Gerenciamento de Dados & Banco de Dados</h2>
@@ -227,23 +227,41 @@ export const BackupView: React.FC = () => {
               </div>
 
               {/* Auto sync toggle */}
-              <div className="p-4 bg-blue-50/40 rounded-2xl border border-blue-100 flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-slate-800">Sincronização em Tempo Real</h4>
-                  <p className="text-[11px] text-slate-500">Salva automaticamente todas as alterações locais no Supabase em segundo plano de forma inteligente.</p>
-                </div>
-                <button
-                  onClick={() => setAutoSync(!autoSync)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    autoSync ? 'bg-blue-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      autoSync ? 'translate-x-5' : 'translate-x-0'
+              <div className="space-y-3">
+                <div className="p-4 bg-blue-50/40 rounded-2xl border border-blue-100 flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-slate-800">Sincronização em Tempo Real</h4>
+                    <p className="text-[11px] text-slate-500">Salva automaticamente todas as alterações locais no Supabase em segundo plano de forma inteligente.</p>
+                  </div>
+                  <button
+                    onClick={() => setAutoSync(!autoSync)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      autoSync ? 'bg-blue-600' : 'bg-slate-300'
                     }`}
-                  />
-                </button>
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        autoSync ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {autoSync && (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-600 space-y-2 animate-fade-in">
+                    <div className="flex items-center gap-2 font-bold text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                      Como funciona o sincronismo em rede/tempo real:
+                    </div>
+                    <p className="leading-relaxed">
+                      O <strong>Compatix OS</strong> sincroniza silenciosamente todas as alterações que você faz (OS, clientes, peças) na nuvem. Se houver outro computador aberto ao mesmo tempo, ele receberá essas atualizações das seguintes formas:
+                    </p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><strong>Instantâneo (Supabase Realtime):</strong> Escutamos o canal de alterações do banco. Para que o sincronismo aconteça em menos de 1 segundo, ative o Realtime para as tabelas <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-600 font-mono">compatix_*</code> no seu painel do Supabase em <em>Database &gt; Replication</em>.</li>
+                      <li><strong>Verificação Inteligente (Fallback a cada 12s):</strong> Mesmo sem o Realtime habilitado no Supabase, nossa verificação periódica em segundo plano faz um "pull" automático de segurança a cada 12 segundos para manter todas as telas atualizadas.</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           ) : supabaseStatus?.connected ? (

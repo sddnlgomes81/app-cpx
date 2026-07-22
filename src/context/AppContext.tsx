@@ -70,6 +70,8 @@ interface AppContextType {
   pushDataToCloud: () => Promise<boolean>;
   pullDataFromCloud: () => Promise<boolean>;
   checkSupabaseReady: () => Promise<void>;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -121,6 +123,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Supabase Sync States
   const [supabaseStatus, setSupabaseStatus] = useState<SyncStatus | null>(null);
@@ -230,6 +233,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     checkSupabaseReady();
   }, []);
 
+  // Supabase Realtime Listener (for sub-second sync across multiple computers)
+  useEffect(() => {
+    if (!autoSync || !supabaseStatus?.tablesReady) return;
+
+    // We subscribe to all changes in the public schema
+    const channel = supabase
+      .channel('compatix-realtime-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public'
+        },
+        async (payload) => {
+          // If a table of ours was modified, trigger a silent pull from the cloud
+          const table = payload.table;
+          if (table && table.startsWith('compatix_')) {
+            console.log('Sincronizador em tempo real detectou alterações na tabela:', table);
+            try {
+              const cloudData = await pullFromSupabase();
+              if (cloudData.users) setUsers(cloudData.users);
+              if (cloudData.clients) setClients(cloudData.clients);
+              if (cloudData.printers) setPrinters(cloudData.printers);
+              if (cloudData.products) setProducts(cloudData.products);
+              if (cloudData.serviceOrders) setServiceOrders(cloudData.serviceOrders);
+              if (cloudData.cashTransactions) setCashTransactions(cloudData.cashTransactions);
+              if (cloudData.auditLogs) setAuditLogs(cloudData.auditLogs);
+              if (cloudData.companySettings) setCompanySettings(cloudData.companySettings);
+
+              const now = new Date().toISOString();
+              setLastSyncTime(now);
+              localStorage.setItem('compatix_last_sync_time', now);
+            } catch (err) {
+              console.error('Falha na sincronização silenciosa em tempo real:', err);
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Status da assinatura de tempo real:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [autoSync, supabaseStatus?.tablesReady]);
+
+  // Periodic Polling Fallback (every 12 seconds)
+  // Ensures robust synchronization even if Supabase Realtime is not active/configured
+  useEffect(() => {
+    if (!autoSync || !supabaseStatus?.tablesReady) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const cloudData = await pullFromSupabase();
+        if (cloudData.users) setUsers(cloudData.users);
+        if (cloudData.clients) setClients(cloudData.clients);
+        if (cloudData.printers) setPrinters(cloudData.printers);
+        if (cloudData.products) setProducts(cloudData.products);
+        if (cloudData.serviceOrders) setServiceOrders(cloudData.serviceOrders);
+        if (cloudData.cashTransactions) setCashTransactions(cloudData.cashTransactions);
+        if (cloudData.auditLogs) setAuditLogs(cloudData.auditLogs);
+        if (cloudData.companySettings) setCompanySettings(cloudData.companySettings);
+
+        const now = new Date().toISOString();
+        setLastSyncTime(now);
+        localStorage.setItem('compatix_last_sync_time', now);
+      } catch (err) {
+        console.error('Falha no polling periódico de sincronização:', err);
+      }
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [autoSync, supabaseStatus?.tablesReady]);
+
+  // Push local changes to Supabase (debounced by 4 seconds)
   useEffect(() => {
     if (!autoSync || !supabaseStatus?.tablesReady) return;
 
@@ -598,6 +677,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         pushDataToCloud,
         pullDataFromCloud,
         checkSupabaseReady,
+        mobileMenuOpen,
+        setMobileMenuOpen,
       }}
     >
       {children}

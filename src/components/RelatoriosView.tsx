@@ -21,7 +21,7 @@ export const RelatoriosView: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-6 bg-slate-50 min-h-full">
+    <div className="p-4 sm:p-8 space-y-6 bg-slate-50 min-h-full">
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-800">Relatórios Gerenciais & Exportação</h2>

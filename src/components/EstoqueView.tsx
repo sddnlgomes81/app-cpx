@@ -65,7 +65,7 @@ export const EstoqueView: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-6 bg-slate-50 min-h-full">
+    <div className="p-4 sm:p-8 space-y-6 bg-slate-50 min-h-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <h2 className="text-base font-bold text-slate-800">Controle de Estoque & Peças</h2>

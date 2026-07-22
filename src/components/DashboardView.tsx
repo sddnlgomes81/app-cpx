@@ -64,31 +64,31 @@ export const DashboardView: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-full">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-slate-50 min-h-full">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-3xl p-5 sm:p-8 text-white shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="relative z-10">
           <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full w-fit text-xs font-semibold text-blue-200 mb-3 backdrop-blur-md">
             <Zap className="w-3.5 h-3.5 text-blue-300" />
             Compatix OS • Módulo Centralizado em Tempo Real
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Painel de Controle Unificado</h1>
-          <p className="text-blue-100 text-sm mt-1 max-w-2xl">
+          <h1 className="text-xl md:text-3xl font-extrabold tracking-tight">Painel de Controle Unificado</h1>
+          <p className="text-blue-100 text-xs sm:text-sm mt-1 max-w-2xl">
             Acompanhe em tempo real o fluxo de atendimento, bancada técnica, faturamento e movimentações de estoque.
           </p>
         </div>
-        <div className="flex items-center gap-3 relative z-10 shrink-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-10 shrink-0 w-full lg:w-auto">
           <button
             onClick={() => setActiveTab('atendimento-os')}
-            className="px-5 py-3 bg-white text-blue-700 font-semibold rounded-2xl shadow-lg hover:bg-blue-50 transition-all text-xs flex items-center gap-2"
+            className="px-5 py-3 bg-white text-blue-700 font-semibold rounded-2xl shadow-lg hover:bg-blue-50 transition-all text-xs flex items-center justify-center gap-2"
           >
             <FileText className="w-4 h-4" />
             Nova Ordem de Serviço
           </button>
           <button
             onClick={() => setActiveTab('tecnica-fila')}
-            className="px-5 py-3 bg-blue-600/50 hover:bg-blue-600/70 border border-blue-400/30 text-white font-semibold rounded-2xl transition-all text-xs backdrop-blur-md flex items-center gap-2"
+            className="px-5 py-3 bg-blue-600/50 hover:bg-blue-600/70 border border-blue-400/30 text-white font-semibold rounded-2xl transition-all text-xs backdrop-blur-md flex items-center justify-center gap-2"
           >
             <Wrench className="w-4 h-4" />
             Ver Bancada Técnica

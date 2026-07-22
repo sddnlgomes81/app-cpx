@@ -307,13 +307,13 @@ export const AtendimentoView: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-6 bg-slate-50 min-h-full">
+    <div className="p-4 sm:p-8 space-y-6 bg-slate-50 min-h-full">
       {/* Module Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 shrink-0 w-full lg:w-auto custom-scrollbar">
           <button
             onClick={() => handleSubViewChange('os')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               subView === 'os' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -322,7 +322,7 @@ export const AtendimentoView: React.FC = () => {
           </button>
           <button
             onClick={() => handleSubViewChange('clientes')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               subView === 'clientes' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -331,7 +331,7 @@ export const AtendimentoView: React.FC = () => {
           </button>
           <button
             onClick={() => handleSubViewChange('impressoras')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               subView === 'impressoras' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -340,11 +340,11 @@ export const AtendimentoView: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full lg:w-auto">
           {subView === 'os' && (
             <button
               onClick={() => setIsOsModalOpen(true)}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+              className="w-full lg:w-auto justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               Abrir Nova OS
@@ -353,7 +353,7 @@ export const AtendimentoView: React.FC = () => {
           {subView === 'clientes' && (
             <button
               onClick={() => setIsClientModalOpen(true)}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+              className="w-full lg:w-auto justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               Cadastrar Cliente
@@ -362,7 +362,7 @@ export const AtendimentoView: React.FC = () => {
           {subView === 'impressoras' && (
             <button
               onClick={() => setIsPrinterModalOpen(true)}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
+              className="w-full lg:w-auto justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               Cadastrar Impressora

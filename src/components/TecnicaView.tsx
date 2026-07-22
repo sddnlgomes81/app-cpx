@@ -163,7 +163,7 @@ export const TecnicaView: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-6 bg-slate-50 min-h-full">
+    <div className="p-4 sm:p-8 space-y-6 bg-slate-50 min-h-full">
       {/* Top Banner & Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
         <div>
