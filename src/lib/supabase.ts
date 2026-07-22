@@ -139,11 +139,19 @@ export async function pullFromSupabase() {
     result.printers = printers as Printer[];
     result.products = products as Product[];
     
-    // Parse JSON strings back into objects for serviceOrders if needed
-    result.serviceOrders = (serviceOrders || []).map(os => ({
-      ...os,
-      usedParts: typeof os.usedParts === 'string' ? JSON.parse(os.usedParts) : os.usedParts
-    })) as ServiceOrder[];
+    // Parse JSON strings back into objects for serviceOrders safely
+    result.serviceOrders = (serviceOrders || []).map(os => {
+      let parts = [];
+      if (typeof os.usedParts === 'string') {
+        try { parts = JSON.parse(os.usedParts); } catch { parts = []; }
+      } else if (Array.isArray(os.usedParts)) {
+        parts = os.usedParts;
+      }
+      return {
+        ...os,
+        usedParts: parts
+      };
+    }) as ServiceOrder[];
 
     result.cashTransactions = cashTransactions as CashTransaction[];
     result.auditLogs = auditLogs as AuditLog[];

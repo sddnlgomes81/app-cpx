@@ -133,8 +133,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [syncError, setSyncError] = useState<string | null>(null);
   const [autoSync, setAutoSync] = useState<boolean>(() => {
-    return localStorage.getItem('compatix_auto_sync') === 'true';
+    return localStorage.getItem('compatix_auto_sync') !== 'false';
   });
+  const [initialPullDone, setInitialPullDone] = useState<boolean>(false);
 
   // Sync to localStorage
   useEffect(() => {
@@ -189,7 +190,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const now = new Date().getTime();
         
         const updated = prev.map((os) => {
-          // Os updates are identical
           if (os.status === 'Aguardando Atendimento' || os.status === 'Aguardando Orçamento') {
             const createdTime = new Date(os.createdAt).getTime();
             const diffHours = (now - createdTime) / (1000 * 60 * 60);
@@ -223,19 +223,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(interval);
   }, []);
 
-  // Supabase Setup Check & Auto Sync Effect
+  // Supabase Setup Check & Initial Hydration
   const checkSupabaseReady = async () => {
     const status = await checkSupabaseStatus();
     setSupabaseStatus(status);
+    return status;
   };
 
   useEffect(() => {
-    checkSupabaseReady();
+    let isMounted = true;
+    async function initCloudHydration() {
+      const status = await checkSupabaseReady();
+      if (!status.tablesReady || !isMounted) {
+        setInitialPullDone(true);
+        return;
+      }
+
+      try {
+        setIsSyncing(true);
+        const cloudData = await pullFromSupabase();
+
+        const hasCloudUsers = cloudData.users && cloudData.users.length > 0;
+        const hasCloudClients = cloudData.clients && cloudData.clients.length > 0;
+        const hasCloudOrders = cloudData.serviceOrders && cloudData.serviceOrders.length > 0;
+        const hasCloudProducts = cloudData.products && cloudData.products.length > 0;
+
+        if (hasCloudUsers || hasCloudClients || hasCloudOrders || hasCloudProducts) {
+          // Cloud has database entries: Hydrate local state from Cloud!
+          console.log('Hydrating local state from Supabase Cloud Database...');
+          if (cloudData.users && cloudData.users.length > 0) setUsers(cloudData.users);
+          if (cloudData.clients) setClients(cloudData.clients);
+          if (cloudData.printers) setPrinters(cloudData.printers);
+          if (cloudData.products) setProducts(cloudData.products);
+          if (cloudData.serviceOrders) setServiceOrders(cloudData.serviceOrders);
+          if (cloudData.cashTransactions) setCashTransactions(cloudData.cashTransactions);
+          if (cloudData.auditLogs) setAuditLogs(cloudData.auditLogs);
+          if (cloudData.companySettings) setCompanySettings(cloudData.companySettings);
+        } else {
+          // Cloud database is empty: Seed initial database tables so all devices start with shared data!
+          console.log('Central Database empty. Seeding initial data to Supabase...');
+          await pushToSupabase({
+            users: initialUsers,
+            clients: initialClients,
+            printers: initialPrinters,
+            products: initialProducts,
+            serviceOrders: initialServiceOrders,
+            cashTransactions: initialCashTransactions,
+            auditLogs: initialAuditLogs,
+            companySettings: initialCompanySettings,
+          });
+        }
+
+        const now = new Date().toISOString();
+        setLastSyncTime(now);
+        localStorage.setItem('compatix_last_sync_time', now);
+      } catch (err: any) {
+        console.error('Error during initial cloud hydration:', err);
+        setSyncError(err?.message || String(err));
+      } finally {
+        if (isMounted) {
+          setInitialPullDone(true);
+          setIsSyncing(false);
+        }
+      }
+    }
+
+    initCloudHydration();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Supabase Realtime Listener (for sub-second sync across multiple computers)
   useEffect(() => {
-    if (!autoSync || !supabaseStatus?.tablesReady) return;
+    if (!autoSync || !supabaseStatus?.tablesReady || !initialPullDone) return;
 
     // We subscribe to all changes in the public schema
     const channel = supabase
@@ -247,7 +309,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           schema: 'public'
         },
         async (payload) => {
-          // If a table of ours was modified, trigger a silent pull from the cloud
           const table = payload.table;
           if (table && table.startsWith('compatix_')) {
             console.log('Sincronizador em tempo real detectou alterações na tabela:', table);
@@ -278,12 +339,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [autoSync, supabaseStatus?.tablesReady]);
+  }, [autoSync, supabaseStatus?.tablesReady, initialPullDone]);
 
   // Periodic Polling Fallback (every 12 seconds)
-  // Ensures robust synchronization even if Supabase Realtime is not active/configured
   useEffect(() => {
-    if (!autoSync || !supabaseStatus?.tablesReady) return;
+    if (!autoSync || !supabaseStatus?.tablesReady || !initialPullDone) return;
 
     const interval = setInterval(async () => {
       try {
@@ -306,11 +366,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 12000);
 
     return () => clearInterval(interval);
-  }, [autoSync, supabaseStatus?.tablesReady]);
+  }, [autoSync, supabaseStatus?.tablesReady, initialPullDone]);
 
-  // Push local changes to Supabase (debounced by 4 seconds)
+  // Push local changes to Supabase (debounced by 3 seconds) ONLY AFTER initial hydration is done
   useEffect(() => {
-    if (!autoSync || !supabaseStatus?.tablesReady) return;
+    if (!autoSync || !supabaseStatus?.tablesReady || !initialPullDone) return;
 
     const timer = setTimeout(() => {
       pushToSupabase({
@@ -329,10 +389,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }).catch(err => {
         console.error('Silent auto-sync failed:', err);
       });
-    }, 4000); // 4 seconds debounce
+    }, 3000);
 
     return () => clearTimeout(timer);
-  }, [autoSync, supabaseStatus?.tablesReady, users, clients, printers, products, serviceOrders, cashTransactions, auditLogs, companySettings]);
+  }, [autoSync, supabaseStatus?.tablesReady, initialPullDone, users, clients, printers, products, serviceOrders, cashTransactions, auditLogs, companySettings]);
 
   const addAuditLog = (operation: string, module: string, details: string) => {
     const newLog: AuditLog = {
@@ -422,11 +482,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const deleteUser = (userId: string) => {
+  const deleteUser = async (userId: string) => {
     const userToDelete = users.find(u => u.id === userId);
     if (userToDelete) {
       setUsers((prev) => prev.filter((u) => u.id !== userId));
       addAuditLog('Exclusão de Usuário', 'Usuários', `Usuário excluído: ${userToDelete.name}`);
+      if (supabaseStatus?.tablesReady) {
+        try {
+          await supabase.from('compatix_users').delete().eq('id', userId);
+        } catch (e) {
+          console.error('Falha ao excluir usuário no Supabase:', e);
+        }
+      }
     }
   };
 
@@ -446,13 +513,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addAuditLog('Atualização de Cliente', 'Atendimento', `Dados atualizados para o cliente: ${client.name}`);
   };
 
-  const deleteClient = (clientId: string) => {
+  const deleteClient = async (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
     setClients(prev => prev.filter(c => c.id !== clientId));
     setPrinters(prev => prev.filter(p => p.clientId !== clientId));
     setServiceOrders(prev => prev.filter(os => os.clientId !== clientId));
     addAuditLog('Exclusão de Cliente', 'Atendimento', `Cliente ${client.name} e suas impressoras/OS associadas foram excluídos.`);
+    if (supabaseStatus?.tablesReady) {
+      try {
+        await supabase.from('compatix_service_orders').delete().eq('clientId', clientId);
+        await supabase.from('compatix_printers').delete().eq('clientId', clientId);
+        await supabase.from('compatix_clients').delete().eq('id', clientId);
+      } catch (e) {
+        console.error('Falha ao excluir cliente no Supabase:', e);
+      }
+    }
   };
 
   const addPrinter = (printerData: Omit<Printer, 'id' | 'createdAt'>): Printer => {
@@ -471,12 +547,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addAuditLog('Atualização de Impressora', 'Atendimento', `Impressora atualizada: ${printer.brand} ${printer.model}`);
   };
 
-  const deletePrinter = (printerId: string) => {
+  const deletePrinter = async (printerId: string) => {
     const printer = printers.find(p => p.id === printerId);
     if (!printer) return;
     setPrinters(prev => prev.filter(p => p.id !== printerId));
     setServiceOrders(prev => prev.filter(os => os.printerId !== printerId));
     addAuditLog('Exclusão de Impressora', 'Atendimento', `Impressora ${printer.brand} ${printer.model} excluída.`);
+    if (supabaseStatus?.tablesReady) {
+      try {
+        await supabase.from('compatix_service_orders').delete().eq('printerId', printerId);
+        await supabase.from('compatix_printers').delete().eq('id', printerId);
+      } catch (e) {
+        console.error('Falha ao excluir impressora no Supabase:', e);
+      }
+    }
   };
 
   const addServiceOrder = (osData: Omit<ServiceOrder, 'id' | 'osNumber' | 'createdAt' | 'updatedAt'>): ServiceOrder => {
