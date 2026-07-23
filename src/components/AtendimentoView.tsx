@@ -69,7 +69,6 @@ export const AtendimentoView: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isConfirmPaymentModalOpen, setIsConfirmPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-  const [isThermalPrint, setIsThermalPrint] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isOsDetailsModalOpen, setIsOsDetailsModalOpen] = useState(false);
@@ -227,7 +226,6 @@ export const AtendimentoView: React.FC = () => {
 
     // Open print modal with the new OS
     setSelectedOs(newOs);
-    setIsThermalPrint(false);
     setIsPrintModalOpen(true);
     setTimeout(() => {
       window.print();
@@ -259,7 +257,6 @@ export const AtendimentoView: React.FC = () => {
     setIsConfirmPaymentModalOpen(false);
     
     if (shouldPrint) {
-      setIsThermalPrint(true);
       setIsPrintModalOpen(true);
       setTimeout(() => {
         window.print();
@@ -481,7 +478,6 @@ export const AtendimentoView: React.FC = () => {
                             <button
                               onClick={() => {
                                 setSelectedOs(os);
-                                setIsThermalPrint(false);
                                 setIsPrintModalOpen(true);
                               }}
                               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg"
@@ -1394,56 +1390,45 @@ export const AtendimentoView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-8 overflow-y-auto space-y-6 text-xs text-slate-700">
-                {isThermalPrint ? (
+              <div className="p-8 overflow-y-auto space-y-6 text-xs text-slate-700 flex justify-center">
+                <div className="border border-slate-300 shadow-md">
                   <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-                ) : (
-                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-                )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Versão de Impressão (print-only) - 2 Vias */}
-          <div className={`print-only print-content bg-white flex justify-center ${isThermalPrint ? 'thermal-print-container' : ''}`}>
-            {isThermalPrint && (
-              <style>{`
-                @media print {
-                  @page {
-                    margin: 0;
-                    size: 80mm auto;
-                  }
-                  body {
-                    margin: 0;
-                    padding: 0;
-                    width: 80mm;
-                  }
-                  .print-content {
-                    width: 80mm !important;
-                    height: auto !important;
-                    position: relative !important;
-                    padding: 0 !important;
-                    display: flex !important;
-                    justify-content: center !important;
-                  }
+          <div className="print-only print-content bg-white flex flex-col items-center">
+            <style>{`
+              @media print {
+                @page {
+                  margin: 0;
+                  size: 80mm auto;
                 }
-              `}</style>
-            )}
-            
-            {isThermalPrint ? (
-              <div className="flex flex-col w-full items-center">
-                <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-              </div>
-            ) : (
-              <>
-                <div className="h-[50vh] overflow-hidden p-6 border-b border-dashed border-slate-300 box-border flex flex-col justify-center">
-                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
-                </div>
-                <div className="h-[50vh] overflow-hidden p-6 box-border flex flex-col justify-center">
-                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
-                </div>
-              </>
-            )}
+                body {
+                  margin: 0;
+                  padding: 0;
+                  background: white;
+                }
+                .print-content {
+                  width: 80mm !important;
+                  display: block !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}</style>
+            <div className="w-full">
+              <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+            </div>
+            <div className="w-full text-center my-2 font-mono text-[12px] font-bold">--------------------------------</div>
+            <div className="w-full">
+              <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+            </div>
           </div>
         </>
       )}
@@ -1691,9 +1676,26 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
         </div>
       </div>
 
-      <div className="text-center pt-4 text-[9px] text-slate-500 border-t border-slate-200 leading-tight">
-        {companySettings.printFooter}
-        <div className="mt-2 font-semibold text-slate-700">ASSINATURA DO CLIENTE: _____________________________________________________</div>
+      <div className="pt-4 text-[9px] text-slate-500 border-t border-slate-200 leading-tight">
+        <div className="text-left font-mono space-y-1 mb-6 text-[10px] bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <p className="font-bold">{`>>>>>>>ATENÇÃO<<<<<<<<<`}</p>
+          <p className="pt-2">- Garantia de 90 dias.</p>
+          <p>- Preserve a embalagem para caso de troca.</p>
+          <p>- Não viole o produto caso pretenda desistir da compra.</p>
+          <p>- Troca ou devolução de produtos mediante a nota de compra.</p>
+          <p className="pt-2">Obrigado e volte sempre!</p>
+          
+          <div className="pt-4 font-bold">PAGAMENTO VIA PIX:</div>
+          <p>PIX: {companySettings.phone || '21 99859-8444'}</p>
+          <p>ID: {companySettings.tradeName || 'COMPATIX'}</p>
+          <p>C/C: NUBANK</p>
+        </div>
+        
+        <div className="text-center">
+          {companySettings.printFooter && <div className="mb-8">{companySettings.printFooter}</div>}
+          <div className="mt-8 mb-2 border-t border-slate-400 w-64 mx-auto"></div>
+          <div className="font-semibold text-slate-700 uppercase tracking-widest text-[10px]">Assinatura do Cliente</div>
+        </div>
       </div>
     </div>
   );
@@ -1705,99 +1707,88 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
   const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
 
   return (
-    <div className="bg-white mx-auto" style={{ color: '#000000', width: '100%', maxWidth: '80mm', padding: '4mm 6mm', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '13px', lineHeight: '1.5' }}>
-      {/* Header: Logo and Date/Time */}
-      <div className="flex justify-between items-start mb-2">
+    <div className="bg-white mx-auto text-black" style={{ width: '100%', maxWidth: '80mm', padding: '4mm', boxSizing: 'border-box', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.2' }}>
+      {/* Header */}
+      <div className="text-center mb-2 flex flex-col items-center">
         {companySettings.logoUrl && (
-          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[80px] object-contain grayscale" style={{ filter: 'grayscale(100%) contrast(1.2) brightness(0.8)' }} />
+          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[100px] mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
         )}
-        <div className="text-right text-[12px]">
-          <div>{new Date().toLocaleDateString('pt-BR')}</div>
-          <div>{new Date().toLocaleTimeString('pt-BR')}</div>
+        <h1 className="font-bold text-sm uppercase">{companySettings.tradeName || 'COMPATIX - SOLUÇÕES PARA IMPRESSORAS'}</h1>
+        <div className="text-[11px]">
+          <div>{companySettings.address}</div>
+          <div>CNPJ: {companySettings.cnpj}</div>
+          <div>Tel: {companySettings.phone}</div>
         </div>
       </div>
 
-      <h1 className="text-xl uppercase mb-4 tracking-tight" style={{ fontWeight: 600 }}>{companySettings.tradeName || 'COMPATIX'}</h1>
+      <div className="text-center mb-2">--------------------------------</div>
 
-      {/* Customer and OS Info */}
-      <div className="mb-4">
-        <div><strong>Cliente:</strong> {c ? c.name : ''}</div>
-        <div>CPF/CNPJ: {c ? c.document : ''}</div>
-        <div>Contato: {c ? c.phone : ''}</div>
-        <div>Endereço: {c ? c.address : ''}</div>
-      </div>
-      
-      <div className="mb-4">
-        <div><strong>Vendedor: Administrador</strong></div>
-        <div>Venda (n: {selectedOs.osNumber})</div>
-      </div>
-
-      {/* Table Header */}
-      <div className="border-t-2 border-b-2 border-black py-1 mb-2 flex justify-between font-bold text-[13px]">
-        <span>Descrição / Quantidade X Unitário</span>
-        <span>Total</span>
-      </div>
-      
-      {/* Items */}
+      {/* OS Info */}
       <div className="mb-2">
-        {selectedOs.usedParts.map((part: any, idx: number) => (
-          <div key={idx} className="mb-1">
-            <div className="font-bold">{part.productName}</div>
-            <div className="flex justify-between">
-              <span>{part.quantity} X R$ {(part.totalPrice / part.quantity).toFixed(2).replace('.', ',')}</span>
-              <span className="font-bold">R$ {part.totalPrice.toFixed(2).replace('.', ',')}</span>
-            </div>
-          </div>
-        ))}
-        {selectedOs.laborCost > 0 && (
+        <div><span className="font-bold">OS N°:</span> {selectedOs.osNumber}</div>
+        <div><span className="font-bold">Data:</span> {new Date().toLocaleString('pt-BR')}</div>
+      </div>
+
+      <div className="text-center mb-2">--------------------------------</div>
+
+      <div className="mb-2">
+        <h2 className="font-bold uppercase mb-1">DADOS DO CLIENTE</h2>
+        <div>{c ? c.name : 'N/A'}</div>
+        <div>Doc: {c ? c.document : 'N/A'}</div>
+      </div>
+
+      <div className="text-center mb-2">--------------------------------</div>
+
+      <div className="mb-2">
+        <h2 className="font-bold uppercase mb-1">EQUIPAMENTO</h2>
+        <div>{p ? `${p.brand} ${p.model}` : 'N/A'}</div>
+        <div>S/N: {p ? p.serialNumber : 'N/A'}</div>
+      </div>
+
+      <div className="text-center mb-2">--------------------------------</div>
+
+      <div className="mb-2">
+        <h2 className="font-bold uppercase mb-1">VALORES</h2>
+        {selectedOs.usedParts.length > 0 && (
           <div className="mb-1">
-            <div className="font-bold">Mão de Obra {p ? `(${p.brand} ${p.model})` : ''}</div>
-            <div className="flex justify-between">
-              <span>1 X R$ {selectedOs.laborCost.toFixed(2).replace('.', ',')}</span>
-              <span className="font-bold">R$ {selectedOs.laborCost.toFixed(2).replace('.', ',')}</span>
-            </div>
+            <div className="font-bold">Peças:</div>
+            {selectedOs.usedParts.map((part: any, idx: number) => (
+              <div key={idx} className="flex justify-between">
+                <span>{part.quantity}x {part.productName.substring(0, 15)}</span>
+                <span>R$ {part.totalPrice.toFixed(2)}</span>
+              </div>
+            ))}
           </div>
         )}
-      </div>
-
-      {/* Totals */}
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <div className="flex justify-between font-bold text-[14px]">
-          <span>Total a Pagar</span>
-          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2).replace('.', ',')}`}</span>
+        <div className="flex justify-between mt-1">
+          <span>Mão de Obra:</span>
+          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
+        </div>
+        <div className="flex justify-between font-bold mt-1">
+          <span>TOTAL:</span>
+          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
         </div>
         {selectedOs.paid && (
-          <div className="flex justify-between text-[13px] mt-1">
-            <span>{selectedOs.paymentMethod || 'Dinheiro'}</span>
-            <span className="font-bold">R$ {selectedOs.totalAmount.toFixed(2).replace('.', ',')}</span>
+          <div className="text-center font-bold mt-2">
+            PAGO VIA {selectedOs.paymentMethod?.toUpperCase()}
           </div>
         )}
       </div>
 
-      {/* Terms and Info */}
-      <div className="border-t-2 border-black mt-4 pt-4 text-[13px]">
-        <div className="mb-4">{`>>>>>>>ATENÇÃO<<<<<<<<<`}</div>
-        
-        <div className="space-y-4 mb-6">
-          <p>- Garantia de 90 dias.</p>
-          <p>- Preserve a embalagem para caso de troca.</p>
-          <p>- Não viole o produto caso pretenda desistir da compra.</p>
-          <p>- Troca ou devolução de produtos mediante a nota de compra.</p>
-        </div>
+      <div className="text-center mb-2">--------------------------------</div>
 
-        <div className="mb-6">Obrigado e volte sempre!</div>
+      <div className="text-justify space-y-2 mb-6">
+        <p>
+          <span className="font-bold">GARANTIA DE 90 DIAS:</span> A garantia cobre apenas os serviços realizados e peças trocadas nesta OS, não cobrindo defeitos por mau uso, quedas ou descargas elétricas.
+        </p>
+        <p>
+          O cliente declara estar recebendo o equipamento acima descrito devidamente consertado e em perfeitas condições de uso.
+        </p>
+      </div>
 
-        <div className="mb-8 space-y-2">
-          <div>PAGAMENTO VIA PIX:</div>
-          <div>PIX: {companySettings.phone || '21 99999-9999'}</div>
-          <div>ID: {companySettings.tradeName || 'COMPATIX'}</div>
-          <div>C/C: NUBANK</div>
-        </div>
-
-        <div className="mt-8 text-center">
-          <div>--------------------------------</div>
-          <div className="text-[12px]">Assinatura do Cliente</div>
-        </div>
+      <div className="text-center mb-8">
+        <div>--------------------------------</div>
+        <div>Assinatura do Cliente</div>
       </div>
     </div>
   );
