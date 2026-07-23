@@ -421,22 +421,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateUserPassword = (userId: string, newPass: string) => {
-    let updatedUser: User | null = null;
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const updated = { ...u, password: newPass, mustChangePassword: false };
-          if (currentUser && currentUser.id === userId) {
-            setCurrentUser(updated);
-          }
-          updatedUser = updated;
-          return updated;
-        }
-        return u;
-      })
-    );
+    const u = users.find(user => user.id === userId);
+    if (!u) return;
+
+    const updatedUser = { ...u, password: newPass, mustChangePassword: false };
+    
+    setUsers((prev) => prev.map((user) => user.id === userId ? updatedUser : user));
+    
+    if (currentUser && currentUser.id === userId) {
+      setCurrentUser(updatedUser);
+    }
+    
     addAuditLog('Alteração de Senha', 'Configurações', `Senha alterada para o usuário ID ${userId}.`);
-    if (updatedUser && supabaseStatus?.tablesReady) {
+    if (supabaseStatus?.tablesReady) {
       (async () => {
         try {
           await supabase.from('compatix_users').upsert([updatedUser]);
@@ -466,19 +463,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleUserStatus = (userId: string) => {
-    let updatedUser: User | null = null;
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const newStatus = u.status === 'Ativo' ? 'Inativo' : 'Ativo';
-          addAuditLog('Alteração Status Usuário', 'Usuários', `Usuário ${u.name} teve status alterado para ${newStatus}`);
-          updatedUser = { ...u, status: newStatus };
-          return updatedUser;
-        }
-        return u;
-      })
-    );
-    if (updatedUser && supabaseStatus?.tablesReady) {
+    const u = users.find(user => user.id === userId);
+    if (!u) return;
+    
+    const newStatus = u.status === 'Ativo' ? 'Inativo' : 'Ativo';
+    const updatedUser = { ...u, status: newStatus };
+    
+    setUsers((prev) => prev.map((user) => user.id === userId ? updatedUser : user));
+    
+    addAuditLog('Alteração Status Usuário', 'Usuários', `Usuário ${u.name} teve status alterado para ${newStatus}`);
+    if (supabaseStatus?.tablesReady) {
       (async () => {
         try {
           await supabase.from('compatix_users').upsert([updatedUser]);
@@ -654,46 +648,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateServiceOrder = (id: string, updates: Partial<ServiceOrder>) => {
-    let targetOs: ServiceOrder | null = null;
-    setServiceOrders((prev) =>
-      prev.map((os) => {
-        if (os.id === id) {
-          const updated = {
-            ...os,
-            ...updates,
-            updatedAt: new Date().toISOString(),
-          };
+    const os = serviceOrders.find(o => o.id === id);
+    if (!os) return;
 
-          if (updates.usedParts && updates.usedParts !== os.usedParts) {
-            const pCost = updates.usedParts.reduce((acc, p) => acc + p.totalPrice, 0);
-            updated.partsCost = pCost;
-            updated.totalAmount = pCost + (updates.laborCost !== undefined ? updates.laborCost : os.laborCost);
-          }
+    const updated = {
+      ...os,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
 
-          if (updates.laborCost !== undefined) {
-            updated.totalAmount = updated.partsCost + updates.laborCost;
-          }
+    if (updates.usedParts && updates.usedParts !== os.usedParts) {
+      const pCost = updates.usedParts.reduce((acc, p) => acc + p.totalPrice, 0);
+      updated.partsCost = pCost;
+      updated.totalAmount = pCost + (updates.laborCost !== undefined ? updates.laborCost : os.laborCost);
+    }
 
-          addAuditLog(
-            `Atualização OS (${os.osNumber})`,
-            updates.status ? 'Área Técnica/Admin' : 'Atendimento',
-            `Status alterado para: ${updates.status || os.status}`
-          );
+    if (updates.laborCost !== undefined) {
+      updated.totalAmount = updated.partsCost + updates.laborCost;
+    }
 
-          targetOs = updated;
-          return updated;
-        }
-        return os;
-      })
+    setServiceOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+
+    addAuditLog(
+      `Atualização OS (${os.osNumber})`,
+      updates.status ? 'Área Técnica/Admin' : 'Atendimento',
+      `Status alterado para: ${updates.status || os.status}`
     );
 
-    if (targetOs && supabaseStatus?.tablesReady) {
-      const osToSave = targetOs;
+    if (supabaseStatus?.tablesReady) {
       (async () => {
         try {
           await supabase.from('compatix_service_orders').upsert([{
-            ...(osToSave as ServiceOrder),
-            usedParts: JSON.stringify((osToSave as ServiceOrder).usedParts)
+            ...updated,
+            usedParts: JSON.stringify(updated.usedParts)
           }]);
         } catch (e) {
           console.error('Error updating Service Order in Supabase:', e);

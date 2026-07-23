@@ -3,7 +3,10 @@
 @layer utilities {
   @media print {
     @page {
-      margin: 8mm;
+      margin: 0;
+    }
+    body {
+      margin: 1cm;
     }
     a[href]:after {
       content: none !important;
