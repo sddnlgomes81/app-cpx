@@ -1380,7 +1380,23 @@ export const AtendimentoView: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 no-print">
             <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
               <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
-                <h3 className="font-bold text-base">Comprovante de Ordem de Serviço</h3>
+                <div className="flex items-center gap-4">
+                  <h3 className="font-bold text-base">Comprovante de OS</h3>
+                  <div className="flex items-center bg-slate-800 rounded-lg p-1">
+                    <button
+                      onClick={() => setIsThermalPrint(false)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${!isThermalPrint ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      A4
+                    </button>
+                    <button
+                      onClick={() => setIsThermalPrint(true)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${isThermalPrint ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      Térmica
+                    </button>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handlePrint}
@@ -1724,7 +1740,6 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
       {/* OS Info */}
       <div className="mb-2">
         <div><span className="font-bold">OS N°:</span> {selectedOs.osNumber}</div>
-        <div><span className="font-bold">Data:</span> {new Date().toLocaleString('pt-BR')}</div>
       </div>
 
       <div className="border-t-2 border-black border-dashed pt-2 mb-2">
