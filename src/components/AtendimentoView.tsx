@@ -69,6 +69,7 @@ export const AtendimentoView: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isConfirmPaymentModalOpen, setIsConfirmPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isThermalPrint, setIsThermalPrint] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isOsDetailsModalOpen, setIsOsDetailsModalOpen] = useState(false);
@@ -226,6 +227,7 @@ export const AtendimentoView: React.FC = () => {
 
     // Open print modal with the new OS
     setSelectedOs(newOs);
+    setIsThermalPrint(false);
     setIsPrintModalOpen(true);
     setTimeout(() => {
       window.print();
@@ -257,6 +259,7 @@ export const AtendimentoView: React.FC = () => {
     setIsConfirmPaymentModalOpen(false);
     
     if (shouldPrint) {
+      setIsThermalPrint(true);
       setIsPrintModalOpen(true);
       setTimeout(() => {
         window.print();
@@ -478,6 +481,7 @@ export const AtendimentoView: React.FC = () => {
                             <button
                               onClick={() => {
                                 setSelectedOs(os);
+                                setIsThermalPrint(false);
                                 setIsPrintModalOpen(true);
                               }}
                               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg"
@@ -1391,19 +1395,59 @@ export const AtendimentoView: React.FC = () => {
               </div>
 
               <div className="p-8 overflow-y-auto space-y-6 text-xs text-slate-700">
-                <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                {isThermalPrint ? (
+                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                ) : (
+                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                )}
               </div>
             </div>
           </div>
 
           {/* Versão de Impressão (print-only) - 2 Vias */}
-          <div className="print-only print-content bg-white">
-            <div className="h-[50vh] overflow-hidden p-6 border-b border-dashed border-slate-300 box-border flex flex-col justify-center">
-              <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
-            </div>
-            <div className="h-[50vh] overflow-hidden p-6 box-border flex flex-col justify-center">
-              <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
-            </div>
+          <div className={`print-only print-content bg-white ${isThermalPrint ? 'thermal-print-container' : ''}`}>
+            {isThermalPrint && (
+              <style>{`
+                @media print {
+                  @page {
+                    margin: 0;
+                    size: 74mm auto;
+                  }
+                  body {
+                    margin: 0;
+                    padding: 0;
+                    width: 74mm;
+                  }
+                  .print-content {
+                    width: 74mm !important;
+                    height: auto !important;
+                    position: relative !important;
+                    padding: 0 !important;
+                  }
+                }
+              `}</style>
+            )}
+            
+            {isThermalPrint ? (
+              <div className="flex flex-col gap-8 pb-8">
+                <div className="px-2 pt-2">
+                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                </div>
+                <div className="border-t-2 border-black border-dashed my-4"></div>
+                <div className="px-2 pt-2">
+                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="h-[50vh] overflow-hidden p-6 border-b border-dashed border-slate-300 box-border flex flex-col justify-center">
+                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
+                </div>
+                <div className="h-[50vh] overflow-hidden p-6 box-border flex flex-col justify-center">
+                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
@@ -1654,6 +1698,87 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
       <div className="text-center pt-4 text-[9px] text-slate-500 border-t border-slate-200 leading-tight">
         {companySettings.printFooter}
         <div className="mt-2 font-semibold text-slate-700">ASSINATURA DO CLIENTE: _____________________________________________________</div>
+      </div>
+    </div>
+  );
+}
+
+function ThermalReceiptContent({ selectedOs, companySettings, clients, printers }: any) {
+  const c = clients.find((x: any) => x.id === selectedOs.clientId);
+  const p = printers.find((x: any) => x.id === selectedOs.printerId);
+  const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
+
+  return (
+    <div className="text-black bg-white" style={{ width: '70mm', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.3' }}>
+      {/* Header */}
+      <div className="text-center pb-2 border-b-2 border-black border-dashed mb-2">
+        {companySettings.logoUrl && (
+          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[120px] mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) brightness(0.8)' }} />
+        )}
+        <h1 className="font-bold text-sm uppercase">{companySettings.tradeName}</h1>
+        <p className="text-[11px]">{companySettings.address}</p>
+        <p className="text-[11px]">CNPJ: {companySettings.cnpj}</p>
+        <p className="text-[11px]">Tel: {companySettings.phone}</p>
+      </div>
+
+      {/* OS Info */}
+      <div className="mb-2">
+        <div><span className="font-bold">OS N°:</span> {selectedOs.osNumber}</div>
+        <div><span className="font-bold">Data:</span> {new Date().toLocaleString('pt-BR')}</div>
+      </div>
+
+      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
+        <h2 className="font-bold uppercase text-[11px] mb-1">Dados do Cliente</h2>
+        <div>{c ? c.name : 'N/A'}</div>
+        <div>Doc: {c ? c.document : 'N/A'}</div>
+      </div>
+
+      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
+        <h2 className="font-bold uppercase text-[11px] mb-1">Equipamento</h2>
+        <div>{p ? `${p.brand} ${p.model}` : 'N/A'}</div>
+        <div>S/N: {p ? p.serialNumber : 'N/A'}</div>
+      </div>
+
+      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
+        <h2 className="font-bold uppercase text-[11px] mb-1">Valores</h2>
+        {selectedOs.usedParts.length > 0 && (
+          <div className="mb-1">
+            <div className="font-bold">Peças:</div>
+            {selectedOs.usedParts.map((part: any, idx: number) => (
+              <div key={idx} className="flex justify-between text-[11px]">
+                <span>{part.quantity}x {part.productName.substring(0, 15)}</span>
+                <span>R$ {part.totalPrice.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-between mt-1">
+          <span>Mão de Obra:</span>
+          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
+        </div>
+        <div className="flex justify-between font-bold text-sm mt-1">
+          <span>TOTAL:</span>
+          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
+        </div>
+        {selectedOs.paid && (
+          <div className="text-center font-bold mt-1 text-[11px]">
+            PAGO VIA {selectedOs.paymentMethod?.toUpperCase()}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t-2 border-black border-dashed pt-2 text-justify text-[11px] space-y-2 mb-8">
+        <p>
+          <strong>GARANTIA DE 90 DIAS:</strong> A garantia cobre apenas os serviços realizados e peças trocadas nesta OS, não cobrindo defeitos por mau uso, quedas ou descargas elétricas.
+        </p>
+        <p>
+          O cliente declara estar recebendo o equipamento acima descrito devidamente consertado e em perfeitas condições de uso.
+        </p>
+      </div>
+
+      <div className="text-center mt-8 pb-4">
+        <div className="border-t border-black w-4/5 mx-auto mb-1"></div>
+        <div className="text-[10px]">Assinatura do Cliente</div>
       </div>
     </div>
   );
