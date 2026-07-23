@@ -58,6 +58,7 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (product: Product) => void;
   addCashTransaction: (trx: Omit<CashTransaction, 'id' | 'date'>) => void;
+  clearCashTransactions: () => void;
   updateCompanySettings: (settings: CompanySettings) => void;
   addAuditLog: (operation: string, module: string, details: string) => void;
   restoreBackup: (data: any) => void;
@@ -756,6 +757,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const clearCashTransactions = () => {
+    setCashTransactions([]);
+    addAuditLog('Zerar Caixa', 'Financeiro', 'Fluxo de caixa zerado pelo administrador.');
+    if (supabaseStatus?.tablesReady) {
+      (async () => {
+        try {
+          await supabase.from('compatix_cash_transactions').delete().neq('id', '');
+        } catch (e) {
+          console.error('Error clearing cash transactions in Supabase:', e);
+        }
+      })();
+    }
+  };
+
   const updateCompanySettings = (settings: CompanySettings) => {
     setCompanySettings(settings);
     addAuditLog('Atualização Dados Empresa', 'Configurações', 'Dados cadastrais da empresa atualizados.');
@@ -869,6 +884,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProduct,
         updateProduct,
         addCashTransaction,
+        clearCashTransactions,
         updateCompanySettings,
         addAuditLog,
         restoreBackup,

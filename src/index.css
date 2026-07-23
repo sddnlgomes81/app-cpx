@@ -2,6 +2,12 @@
 
 @layer utilities {
   @media print {
+    @page {
+      margin: 8mm;
+    }
+    a[href]:after {
+      content: none !important;
+    }
     .no-print {
       display: none !important;
     }
