@@ -1433,10 +1433,6 @@ export const AtendimentoView: React.FC = () => {
                 <div className="px-2 pt-2">
                   <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
                 </div>
-                <div className="border-t-2 border-black border-dashed my-4"></div>
-                <div className="px-2 pt-2">
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-                </div>
               </div>
             ) : (
               <>
@@ -1709,43 +1705,43 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
   const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
 
   return (
-    <div className="text-black bg-white" style={{ width: '70mm', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.3' }}>
+    <div className="bg-white" style={{ color: '#000000', width: '70mm', fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.4', fontWeight: 'bold' }}>
       {/* Header */}
-      <div className="text-center pb-2 border-b-2 border-black border-dashed mb-2">
+      <div className="text-center pb-2 border-b-4 border-black border-dashed mb-2">
         {companySettings.logoUrl && (
-          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[120px] mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) brightness(0.8)' }} />
+          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[120px] mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.5) brightness(0.5)' }} />
         )}
-        <h1 className="font-bold text-sm uppercase">{companySettings.tradeName}</h1>
-        <p className="text-[11px]">{companySettings.address}</p>
-        <p className="text-[11px]">CNPJ: {companySettings.cnpj}</p>
-        <p className="text-[11px]">Tel: {companySettings.phone}</p>
+        <h1 className="font-black text-sm uppercase">{companySettings.tradeName}</h1>
+        <p className="text-[12px]">{companySettings.address}</p>
+        <p className="text-[12px]">CNPJ: {companySettings.cnpj}</p>
+        <p className="text-[12px]">Tel: {companySettings.phone}</p>
       </div>
 
       {/* OS Info */}
       <div className="mb-2">
-        <div><span className="font-bold">OS N°:</span> {selectedOs.osNumber}</div>
-        <div><span className="font-bold">Data:</span> {new Date().toLocaleString('pt-BR')}</div>
+        <div><span className="font-black">OS N°:</span> {selectedOs.osNumber}</div>
+        <div><span className="font-black">Data:</span> {new Date().toLocaleString('pt-BR')}</div>
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-bold uppercase text-[11px] mb-1">Dados do Cliente</h2>
+      <div className="border-t-4 border-black border-dashed pt-2 mb-2">
+        <h2 className="font-black uppercase text-[12px] mb-1">Dados do Cliente</h2>
         <div>{c ? c.name : 'N/A'}</div>
         <div>Doc: {c ? c.document : 'N/A'}</div>
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-bold uppercase text-[11px] mb-1">Equipamento</h2>
+      <div className="border-t-4 border-black border-dashed pt-2 mb-2">
+        <h2 className="font-black uppercase text-[12px] mb-1">Equipamento</h2>
         <div>{p ? `${p.brand} ${p.model}` : 'N/A'}</div>
         <div>S/N: {p ? p.serialNumber : 'N/A'}</div>
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-bold uppercase text-[11px] mb-1">Valores</h2>
+      <div className="border-t-4 border-black border-dashed pt-2 mb-2">
+        <h2 className="font-black uppercase text-[12px] mb-1">Valores</h2>
         {selectedOs.usedParts.length > 0 && (
           <div className="mb-1">
-            <div className="font-bold">Peças:</div>
+            <div className="font-black">Peças:</div>
             {selectedOs.usedParts.map((part: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-[11px]">
+              <div key={idx} className="flex justify-between text-[12px]">
                 <span>{part.quantity}x {part.productName.substring(0, 15)}</span>
                 <span>R$ {part.totalPrice.toFixed(2)}</span>
               </div>
@@ -1756,18 +1752,18 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
           <span>Mão de Obra:</span>
           <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
         </div>
-        <div className="flex justify-between font-bold text-sm mt-1">
+        <div className="flex justify-between font-black text-sm mt-1">
           <span>TOTAL:</span>
           <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
         </div>
         {selectedOs.paid && (
-          <div className="text-center font-bold mt-1 text-[11px]">
+          <div className="text-center font-black mt-1 text-[12px]">
             PAGO VIA {selectedOs.paymentMethod?.toUpperCase()}
           </div>
         )}
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 text-justify text-[11px] space-y-2 mb-8">
+      <div className="border-t-4 border-black border-dashed pt-2 text-justify text-[12px] space-y-2 mb-8">
         <p>
           <strong>GARANTIA DE 90 DIAS:</strong> A garantia cobre apenas os serviços realizados e peças trocadas nesta OS, não cobrindo defeitos por mau uso, quedas ou descargas elétricas.
         </p>
@@ -1776,9 +1772,9 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
         </p>
       </div>
 
-      <div className="text-center mt-8 pb-4">
-        <div className="border-t border-black w-4/5 mx-auto mb-1"></div>
-        <div className="text-[10px]">Assinatura do Cliente</div>
+      <div className="text-center mt-10 pb-4">
+        <div className="border-t-2 border-black w-4/5 mx-auto mb-1"></div>
+        <div className="text-[12px]">Assinatura do Cliente</div>
       </div>
     </div>
   );
