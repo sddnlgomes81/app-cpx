@@ -1405,34 +1405,34 @@ export const AtendimentoView: React.FC = () => {
           </div>
 
           {/* Versão de Impressão (print-only) - 2 Vias */}
-          <div className={`print-only print-content bg-white ${isThermalPrint ? 'thermal-print-container' : ''}`}>
+          <div className={`print-only print-content bg-white flex justify-center ${isThermalPrint ? 'thermal-print-container' : ''}`}>
             {isThermalPrint && (
               <style>{`
                 @media print {
                   @page {
                     margin: 0;
-                    size: 74mm auto;
+                    size: 80mm auto;
                   }
                   body {
                     margin: 0;
                     padding: 0;
-                    width: 74mm;
+                    width: 80mm;
                   }
                   .print-content {
-                    width: 74mm !important;
+                    width: 80mm !important;
                     height: auto !important;
                     position: relative !important;
                     padding: 0 !important;
+                    display: flex !important;
+                    justify-content: center !important;
                   }
                 }
               `}</style>
             )}
             
             {isThermalPrint ? (
-              <div className="flex flex-col gap-8 pb-8">
-                <div className="px-2 pt-2">
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-                </div>
+              <div className="flex flex-col w-full items-center">
+                <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
               </div>
             ) : (
               <>
@@ -1705,7 +1705,7 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
   const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
 
   return (
-    <div className="bg-white" style={{ color: '#000000', width: '70mm', fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.4', fontWeight: 'bold' }}>
+    <div className="bg-white mx-auto" style={{ color: '#000000', width: '100%', maxWidth: '78mm', padding: '0 4mm', boxSizing: 'border-box', fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.4', fontWeight: 'bold' }}>
       {/* Header */}
       <div className="text-center pb-2 border-b-4 border-black border-dashed mb-2">
         {companySettings.logoUrl && (
@@ -1772,7 +1772,7 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
         </p>
       </div>
 
-      <div className="text-center mt-10 pb-4">
+      <div className="text-center mt-10 pb-2">
         <div className="border-t-2 border-black w-4/5 mx-auto mb-1"></div>
         <div className="text-[12px]">Assinatura do Cliente</div>
       </div>
