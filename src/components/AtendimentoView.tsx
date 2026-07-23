@@ -1705,76 +1705,99 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers 
   const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
 
   return (
-    <div className="bg-white mx-auto" style={{ color: '#000000', width: '100%', maxWidth: '78mm', padding: '0 4mm', boxSizing: 'border-box', fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.4', fontWeight: 'bold' }}>
-      {/* Header */}
-      <div className="text-center pb-2 border-b-4 border-black border-dashed mb-2">
+    <div className="bg-white mx-auto" style={{ color: '#000000', width: '100%', maxWidth: '80mm', padding: '4mm 6mm', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '13px', lineHeight: '1.5' }}>
+      {/* Header: Logo and Date/Time */}
+      <div className="flex justify-between items-start mb-2">
         {companySettings.logoUrl && (
-          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[120px] mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.5) brightness(0.5)' }} />
+          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[80px] object-contain grayscale" style={{ filter: 'grayscale(100%) contrast(1.2) brightness(0.8)' }} />
         )}
-        <h1 className="font-black text-sm uppercase">{companySettings.tradeName}</h1>
-        <p className="text-[12px]">{companySettings.address}</p>
-        <p className="text-[12px]">CNPJ: {companySettings.cnpj}</p>
-        <p className="text-[12px]">Tel: {companySettings.phone}</p>
+        <div className="text-right text-[12px]">
+          <div>{new Date().toLocaleDateString('pt-BR')}</div>
+          <div>{new Date().toLocaleTimeString('pt-BR')}</div>
+        </div>
       </div>
 
-      {/* OS Info */}
+      <h1 className="text-xl uppercase mb-4 tracking-tight" style={{ fontWeight: 600 }}>{companySettings.tradeName || 'COMPATIX'}</h1>
+
+      {/* Customer and OS Info */}
+      <div className="mb-4">
+        <div><strong>Cliente:</strong> {c ? c.name : ''}</div>
+        <div>CPF/CNPJ: {c ? c.document : ''}</div>
+        <div>Contato: {c ? c.phone : ''}</div>
+        <div>Endereço: {c ? c.address : ''}</div>
+      </div>
+      
+      <div className="mb-4">
+        <div><strong>Vendedor: Administrador</strong></div>
+        <div>Venda (n: {selectedOs.osNumber})</div>
+      </div>
+
+      {/* Table Header */}
+      <div className="border-t-2 border-b-2 border-black py-1 mb-2 flex justify-between font-bold text-[13px]">
+        <span>Descrição / Quantidade X Unitário</span>
+        <span>Total</span>
+      </div>
+      
+      {/* Items */}
       <div className="mb-2">
-        <div><span className="font-black">OS N°:</span> {selectedOs.osNumber}</div>
-        <div><span className="font-black">Data:</span> {new Date().toLocaleString('pt-BR')}</div>
-      </div>
-
-      <div className="border-t-4 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-black uppercase text-[12px] mb-1">Dados do Cliente</h2>
-        <div>{c ? c.name : 'N/A'}</div>
-        <div>Doc: {c ? c.document : 'N/A'}</div>
-      </div>
-
-      <div className="border-t-4 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-black uppercase text-[12px] mb-1">Equipamento</h2>
-        <div>{p ? `${p.brand} ${p.model}` : 'N/A'}</div>
-        <div>S/N: {p ? p.serialNumber : 'N/A'}</div>
-      </div>
-
-      <div className="border-t-4 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-black uppercase text-[12px] mb-1">Valores</h2>
-        {selectedOs.usedParts.length > 0 && (
+        {selectedOs.usedParts.map((part: any, idx: number) => (
+          <div key={idx} className="mb-1">
+            <div className="font-bold">{part.productName}</div>
+            <div className="flex justify-between">
+              <span>{part.quantity} X R$ {(part.totalPrice / part.quantity).toFixed(2).replace('.', ',')}</span>
+              <span className="font-bold">R$ {part.totalPrice.toFixed(2).replace('.', ',')}</span>
+            </div>
+          </div>
+        ))}
+        {selectedOs.laborCost > 0 && (
           <div className="mb-1">
-            <div className="font-black">Peças:</div>
-            {selectedOs.usedParts.map((part: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-[12px]">
-                <span>{part.quantity}x {part.productName.substring(0, 15)}</span>
-                <span>R$ {part.totalPrice.toFixed(2)}</span>
-              </div>
-            ))}
+            <div className="font-bold">Mão de Obra {p ? `(${p.brand} ${p.model})` : ''}</div>
+            <div className="flex justify-between">
+              <span>1 X R$ {selectedOs.laborCost.toFixed(2).replace('.', ',')}</span>
+              <span className="font-bold">R$ {selectedOs.laborCost.toFixed(2).replace('.', ',')}</span>
+            </div>
           </div>
         )}
-        <div className="flex justify-between mt-1">
-          <span>Mão de Obra:</span>
-          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
-        </div>
-        <div className="flex justify-between font-black text-sm mt-1">
-          <span>TOTAL:</span>
-          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
+      </div>
+
+      {/* Totals */}
+      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
+        <div className="flex justify-between font-bold text-[14px]">
+          <span>Total a Pagar</span>
+          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2).replace('.', ',')}`}</span>
         </div>
         {selectedOs.paid && (
-          <div className="text-center font-black mt-1 text-[12px]">
-            PAGO VIA {selectedOs.paymentMethod?.toUpperCase()}
+          <div className="flex justify-between text-[13px] mt-1">
+            <span>{selectedOs.paymentMethod || 'Dinheiro'}</span>
+            <span className="font-bold">R$ {selectedOs.totalAmount.toFixed(2).replace('.', ',')}</span>
           </div>
         )}
       </div>
 
-      <div className="border-t-4 border-black border-dashed pt-2 text-justify text-[12px] space-y-2 mb-8">
-        <p>
-          <strong>GARANTIA DE 90 DIAS:</strong> A garantia cobre apenas os serviços realizados e peças trocadas nesta OS, não cobrindo defeitos por mau uso, quedas ou descargas elétricas.
-        </p>
-        <p>
-          O cliente declara estar recebendo o equipamento acima descrito devidamente consertado e em perfeitas condições de uso.
-        </p>
-      </div>
+      {/* Terms and Info */}
+      <div className="border-t-2 border-black mt-4 pt-4 text-[13px]">
+        <div className="mb-4">{`>>>>>>>ATENÇÃO<<<<<<<<<`}</div>
+        
+        <div className="space-y-4 mb-6">
+          <p>- Garantia de 90 dias.</p>
+          <p>- Preserve a embalagem para caso de troca.</p>
+          <p>- Não viole o produto caso pretenda desistir da compra.</p>
+          <p>- Troca ou devolução de produtos mediante a nota de compra.</p>
+        </div>
 
-      <div className="text-center mt-10 pb-2">
-        <div className="border-t-2 border-black w-4/5 mx-auto mb-1"></div>
-        <div className="text-[12px]">Assinatura do Cliente</div>
+        <div className="mb-6">Obrigado e volte sempre!</div>
+
+        <div className="mb-8 space-y-2">
+          <div>PAGAMENTO VIA PIX:</div>
+          <div>PIX: {companySettings.phone || '21 99999-9999'}</div>
+          <div>ID: {companySettings.tradeName || 'COMPATIX'}</div>
+          <div>C/C: NUBANK</div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <div>--------------------------------</div>
+          <div className="text-[12px]">Assinatura do Cliente</div>
+        </div>
       </div>
     </div>
   );
