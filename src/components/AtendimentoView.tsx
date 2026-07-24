@@ -1447,16 +1447,8 @@ export const AtendimentoView: React.FC = () => {
             )}
             
             {isThermalPrint ? (
-              <div className="flex flex-col gap-2 pb-4">
-                <div className="px-1 pt-1">
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} viaLabel="1ª VIA - EMPRESA" />
-                </div>
-                <div className="text-center font-bold text-[11px] my-4 border-t-2 border-b-2 border-black border-dashed py-1 tracking-wider">
-                  ----- CORTE AQUI -----
-                </div>
-                <div className="px-1 pt-1">
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} viaLabel="2ª VIA - CLIENTE" />
-                </div>
+              <div className="pb-4 px-1 pt-1">
+                <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
               </div>
             ) : (
               <>
