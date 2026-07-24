@@ -1427,31 +1427,35 @@ export const AtendimentoView: React.FC = () => {
                 @media print {
                   @page {
                     margin: 0;
-                    size: 74mm auto;
+                    size: 80mm auto;
                   }
                   body {
-                    margin: 0;
-                    padding: 0;
-                    width: 74mm;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 80mm !important;
                   }
                   .print-content {
-                    width: 74mm !important;
+                    width: 80mm !important;
                     height: auto !important;
-                    position: relative !important;
-                    padding: 0 !important;
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    padding: 2mm !important;
                   }
                 }
               `}</style>
             )}
             
             {isThermalPrint ? (
-              <div className="flex flex-col gap-8 pb-8">
-                <div className="px-2 pt-2">
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+              <div className="flex flex-col gap-2 pb-4">
+                <div className="px-1 pt-1">
+                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} viaLabel="1ª VIA - EMPRESA" />
                 </div>
-                <div className="border-t-2 border-black border-dashed my-4"></div>
-                <div className="px-2 pt-2">
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                <div className="text-center font-bold text-[11px] my-4 border-t-2 border-b-2 border-black border-dashed py-1 tracking-wider">
+                  ----- CORTE AQUI -----
+                </div>
+                <div className="px-1 pt-1">
+                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} viaLabel="2ª VIA - CLIENTE" />
                 </div>
               </div>
             ) : (
@@ -1719,81 +1723,110 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
   );
 }
 
-function ThermalReceiptContent({ selectedOs, companySettings, clients, printers }: any) {
+function ThermalReceiptContent({ selectedOs, companySettings, clients, printers, viaLabel }: any) {
   const c = clients.find((x: any) => x.id === selectedOs.clientId);
   const p = printers.find((x: any) => x.id === selectedOs.printerId);
   const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
+  const emissionDate = selectedOs.paidAt
+    ? new Date(selectedOs.paidAt).toLocaleString('pt-BR')
+    : new Date().toLocaleString('pt-BR');
 
   return (
-    <div className="text-black bg-white" style={{ width: '70mm', fontFamily: 'monospace', fontSize: '12px', lineHeight: '1.3' }}>
-      {/* Header */}
-      <div className="text-center pb-2 border-b-2 border-black border-dashed mb-2">
+    <div className="text-black bg-white mx-auto p-1" style={{ width: '74mm', fontFamily: "'Courier New', Courier, monospace", fontSize: '11px', lineHeight: '1.3' }}>
+      {viaLabel && (
+        <div className="text-center font-bold text-[10px] uppercase mb-1.5 tracking-wider border-b border-black pb-0.5">
+          [ {viaLabel} ]
+        </div>
+      )}
+
+      {/* 1. Cabeçalho */}
+      <div className="text-center pb-2 border-b border-black border-dashed mb-2">
         {companySettings.logoUrl && (
-          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[120px] mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) brightness(0.8)' }} />
+          <img
+            src={companySettings.logoUrl}
+            alt="Logo"
+            className="max-w-[110px] max-h-[50px] mx-auto mb-1 object-contain grayscale"
+            style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+          />
         )}
-        <h1 className="font-bold text-sm uppercase">{companySettings.tradeName}</h1>
-        <p className="text-[11px]">{companySettings.address}</p>
-        <p className="text-[11px]">CNPJ: {companySettings.cnpj}</p>
-        <p className="text-[11px]">Tel: {companySettings.phone}</p>
+        <h1 className="font-bold text-xs uppercase">{companySettings.tradeName}</h1>
+        {companySettings.address && <p className="text-[10px]">{companySettings.address}</p>}
+        {companySettings.cnpj && <p className="text-[10px]">CNPJ: {companySettings.cnpj}</p>}
+        {companySettings.phone && <p className="text-[10px]">Tel: {companySettings.phone}</p>}
+        <p className="text-[10px] mt-1 font-semibold">Data/Hora: {emissionDate}</p>
       </div>
 
-      {/* OS Info */}
-      <div className="mb-2">
-        <div><span className="font-bold">OS N°:</span> {selectedOs.osNumber}</div>
+      {/* 2. Dados da Ordem de Serviço */}
+      <div className="mb-2 pb-1 border-b border-black border-dashed">
+        <div className="font-bold text-xs">OS N°: {selectedOs.osNumber}</div>
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-bold uppercase text-[11px] mb-1">Dados do Cliente</h2>
-        <div>{c ? c.name : 'N/A'}</div>
-        <div>Doc: {c ? c.document : 'N/A'}</div>
+      {/* 3. Dados do Cliente */}
+      <div className="mb-2 pb-1 border-b border-black border-dashed">
+        <h2 className="font-bold uppercase text-[10px] mb-0.5">Dados do Cliente</h2>
+        <div><span className="font-semibold">Nome:</span> {c ? c.name : 'N/A'}</div>
+        <div><span className="font-semibold">Tel:</span> {c ? c.phone : 'N/A'}</div>
+        {c?.document && <div><span className="font-semibold">CPF/CNPJ:</span> {c.document}</div>}
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-bold uppercase text-[11px] mb-1">Equipamento</h2>
-        <div>{p ? `${p.brand} ${p.model}` : 'N/A'}</div>
-        <div>S/N: {p ? p.serialNumber : 'N/A'}</div>
+      {/* 4. Dados do Equipamento */}
+      <div className="mb-2 pb-1 border-b border-black border-dashed">
+        <h2 className="font-bold uppercase text-[10px] mb-0.5">Equipamento</h2>
+        <div><span className="font-semibold">Modelo:</span> {p ? `${p.brand} ${p.model}` : 'N/A'}</div>
+        <div><span className="font-semibold">N° de Série:</span> {p ? p.serialNumber : 'N/A'}</div>
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 mb-2">
-        <h2 className="font-bold uppercase text-[11px] mb-1">Valores</h2>
-        {selectedOs.usedParts.length > 0 && (
-          <div className="mb-1">
-            <div className="font-bold">Peças:</div>
+      {/* 5. Serviço Realizado & Valores */}
+      <div className="mb-2 pb-1 border-b border-black border-dashed">
+        <h2 className="font-bold uppercase text-[10px] mb-0.5">Serviço / Valores</h2>
+        <div className="mb-1">
+          <span className="font-semibold">Serviço:</span> {selectedOs.reportedDefect || 'Manutenção e Reparo'}
+        </div>
+
+        {selectedOs.usedParts && selectedOs.usedParts.length > 0 && (
+          <div className="my-1.5 pt-1 border-t border-black border-dotted">
+            <div className="font-semibold text-[10px] mb-0.5">Peças Trocadas:</div>
             {selectedOs.usedParts.map((part: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-[11px]">
-                <span>{part.quantity}x {part.productName.substring(0, 15)}</span>
+              <div key={idx} className="flex justify-between text-[10px] pl-1">
+                <span>{part.quantity}x {part.productName}</span>
                 <span>R$ {part.totalPrice.toFixed(2)}</span>
               </div>
             ))}
           </div>
         )}
-        <div className="flex justify-between mt-1">
+
+        <div className="flex justify-between text-[10px] mt-1 pt-1 border-t border-black border-dotted">
           <span>Mão de Obra:</span>
           <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
         </div>
-        <div className="flex justify-between font-bold text-sm mt-1">
-          <span>TOTAL:</span>
+
+        <div className="flex justify-between font-bold text-xs mt-1 pt-1 border-t border-black">
+          <span>VALOR TOTAL:</span>
           <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
         </div>
+
         {selectedOs.paid && (
-          <div className="text-center font-bold mt-1 text-[11px]">
-            PAGO VIA {selectedOs.paymentMethod?.toUpperCase()}
+          <div className="text-center font-bold mt-1.5 text-[10px] bg-slate-100 py-0.5 border border-black">
+            PAGO VIA {selectedOs.paymentMethod?.toUpperCase() || 'DINHEIRO'}
           </div>
         )}
       </div>
 
-      <div className="border-t-2 border-black border-dashed pt-2 text-justify text-[11px] space-y-2 mb-8">
+      {/* 6. Texto Padrão de Garantia */}
+      <div className="mb-3 pt-1 border-b border-black border-dashed pb-2 text-[10px] leading-tight text-justify">
+        <div className="font-bold text-center mb-1">GARANTIA</div>
         <p>
-          <strong>GARANTIA DE 90 DIAS:</strong> A garantia cobre apenas os serviços realizados e peças trocadas nesta OS, não cobrindo defeitos por mau uso, quedas ou descargas elétricas.
-        </p>
-        <p>
-          O cliente declara estar recebendo o equipamento acima descrito devidamente consertado e em perfeitas condições de uso.
+          Este serviço possui garantia de 90 (noventa) dias, contados a partir da data de emissão deste comprovante, cobrindo exclusivamente o serviço e as peças aqui descritas.
         </p>
       </div>
 
-      <div className="text-center mt-8 pb-4">
+      {/* 7. Texto Padrão de Assinatura */}
+      <div className="pt-1 text-[10px] text-center pb-2">
+        <p className="leading-tight mb-6 text-justify">
+          Declaro que recebi o equipamento acima descrito, em perfeitas condições de funcionamento.
+        </p>
         <div className="border-t border-black w-4/5 mx-auto mb-1"></div>
-        <div className="text-[10px]">Assinatura do Cliente</div>
+        <div className="font-semibold">Assinatura do Cliente</div>
       </div>
     </div>
   );
