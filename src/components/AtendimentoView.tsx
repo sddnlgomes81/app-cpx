@@ -1724,9 +1724,9 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers,
     : new Date().toLocaleString('pt-BR');
 
   return (
-    <div className="text-black bg-white mx-auto p-1" style={{ width: '74mm', fontFamily: "'Courier New', Courier, monospace", fontSize: '11px', lineHeight: '1.3' }}>
+    <div className="text-black bg-white mx-auto p-1 font-bold" style={{ width: '74mm', fontFamily: "'Courier New', Courier, monospace", fontSize: '11px', lineHeight: '1.3' }}>
       {viaLabel && (
-        <div className="text-center font-bold text-[10px] uppercase mb-1.5 tracking-wider border-b border-black pb-0.5">
+        <div className="text-center font-black text-[10px] uppercase mb-1.5 tracking-wider border-b border-black pb-0.5">
           [ {viaLabel} ]
         </div>
       )}
@@ -1738,46 +1738,46 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers,
             src={companySettings.logoUrl}
             alt="Logo"
             className="max-w-[110px] max-h-[50px] mx-auto mb-1 object-contain grayscale"
-            style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+            style={{ filter: 'grayscale(100%) brightness(0.5) contrast(1.5)' }}
           />
         )}
-        <h1 className="font-bold text-xs uppercase">{companySettings.tradeName}</h1>
+        <h1 className="font-black text-xs uppercase">{companySettings.tradeName}</h1>
         {companySettings.address && <p className="text-[10px]">{companySettings.address}</p>}
         {companySettings.cnpj && <p className="text-[10px]">CNPJ: {companySettings.cnpj}</p>}
         {companySettings.phone && <p className="text-[10px]">Tel: {companySettings.phone}</p>}
-        <p className="text-[10px] mt-1 font-semibold">Data/Hora: {emissionDate}</p>
+        <p className="text-[10px] mt-1 font-black">Data/Hora: {emissionDate}</p>
       </div>
 
       {/* 2. Dados da Ordem de Serviço */}
       <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <div className="font-bold text-xs">OS N°: {selectedOs.osNumber}</div>
+        <div className="font-black text-xs">OS N°: {selectedOs.osNumber}</div>
       </div>
 
       {/* 3. Dados do Cliente */}
       <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <h2 className="font-bold uppercase text-[10px] mb-0.5">Dados do Cliente</h2>
-        <div><span className="font-semibold">Nome:</span> {c ? c.name : 'N/A'}</div>
-        <div><span className="font-semibold">Tel:</span> {c ? c.phone : 'N/A'}</div>
-        {c?.document && <div><span className="font-semibold">CPF/CNPJ:</span> {c.document}</div>}
+        <h2 className="font-black uppercase text-[10px] mb-0.5">Dados do Cliente</h2>
+        <div><span className="font-black">Nome:</span> {c ? c.name : 'N/A'}</div>
+        <div><span className="font-black">Tel:</span> {c ? c.phone : 'N/A'}</div>
+        {c?.document && <div><span className="font-black">CPF/CNPJ:</span> {c.document}</div>}
       </div>
 
       {/* 4. Dados do Equipamento */}
       <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <h2 className="font-bold uppercase text-[10px] mb-0.5">Equipamento</h2>
-        <div><span className="font-semibold">Modelo:</span> {p ? `${p.brand} ${p.model}` : 'N/A'}</div>
-        <div><span className="font-semibold">N° de Série:</span> {p ? p.serialNumber : 'N/A'}</div>
+        <h2 className="font-black uppercase text-[10px] mb-0.5">Equipamento</h2>
+        <div><span className="font-black">Modelo:</span> {p ? `${p.brand} ${p.model}` : 'N/A'}</div>
+        <div><span className="font-black">N° de Série:</span> {p ? p.serialNumber : 'N/A'}</div>
       </div>
 
       {/* 5. Serviço Realizado & Valores */}
       <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <h2 className="font-bold uppercase text-[10px] mb-0.5">Serviço / Valores</h2>
+        <h2 className="font-black uppercase text-[10px] mb-0.5">Serviço / Valores</h2>
         <div className="mb-1">
-          <span className="font-semibold">Serviço:</span> {selectedOs.reportedDefect || 'Manutenção e Reparo'}
+          <span className="font-black">Serviço:</span> {selectedOs.reportedDefect || 'Manutenção e Reparo'}
         </div>
 
         {selectedOs.usedParts && selectedOs.usedParts.length > 0 && (
           <div className="my-1.5 pt-1 border-t border-black border-dotted">
-            <div className="font-semibold text-[10px] mb-0.5">Peças Trocadas:</div>
+            <div className="font-black text-[10px] mb-0.5">Peças Trocadas:</div>
             {selectedOs.usedParts.map((part: any, idx: number) => (
               <div key={idx} className="flex justify-between text-[10px] pl-1">
                 <span>{part.quantity}x {part.productName}</span>
@@ -1792,13 +1792,13 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers,
           <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
         </div>
 
-        <div className="flex justify-between font-bold text-xs mt-1 pt-1 border-t border-black">
+        <div className="flex justify-between font-black text-xs mt-1 pt-1 border-t border-black">
           <span>VALOR TOTAL:</span>
           <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
         </div>
 
         {selectedOs.paid && (
-          <div className="text-center font-bold mt-1.5 text-[10px] bg-slate-100 py-0.5 border border-black">
+          <div className="text-center font-black mt-1.5 text-[10px] bg-slate-100 py-0.5 border border-black">
             PAGO VIA {selectedOs.paymentMethod?.toUpperCase() || 'DINHEIRO'}
           </div>
         )}
@@ -1806,7 +1806,7 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers,
 
       {/* 6. Texto Padrão de Garantia */}
       <div className="mb-3 pt-1 border-b border-black border-dashed pb-2 text-[10px] leading-tight text-justify">
-        <div className="font-bold text-center mb-1">GARANTIA</div>
+        <div className="font-black text-center mb-1">GARANTIA</div>
         <p>
           Este serviço possui garantia de 90 (noventa) dias, contados a partir da data de emissão deste comprovante, cobrindo exclusivamente o serviço e as peças aqui descritas.
         </p>
@@ -1814,11 +1814,11 @@ function ThermalReceiptContent({ selectedOs, companySettings, clients, printers,
 
       {/* 7. Texto Padrão de Assinatura */}
       <div className="pt-1 text-[10px] text-center pb-2">
-        <p className="leading-tight mb-6 text-justify">
+        <p className="leading-tight mb-6 text-justify font-bold">
           Declaro que recebi o equipamento acima descrito, em perfeitas condições de funcionamento.
         </p>
         <div className="border-t border-black w-4/5 mx-auto mb-1"></div>
-        <div className="font-semibold">Assinatura do Cliente</div>
+        <div className="font-black">Assinatura do Cliente</div>
       </div>
     </div>
   );
