@@ -1679,6 +1679,15 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
           cobrindo exclusivamente o serviço e as peças aqui descritas.
         </div>
 
+        <div className="text-justify font-medium mt-4">
+          Declaro que recebi o equipamento acima descrito, em perfeitas condições de funcionamento.
+        </div>
+        <div className="mt-6 mb-8 flex justify-center">
+          <div className="w-80 border-t border-slate-800 pt-1 text-center font-bold text-slate-800">
+            Assinatura do Cliente
+          </div>
+        </div>
+
         <div className="text-justify font-medium mt-6 border-t border-slate-200 pt-4">
           <div className="font-bold text-center mb-2 uppercase tracking-wider text-slate-800">Aviso Sobre Retirada do Equipamento</div>
           <p className="mb-2">
