@@ -41,6 +41,7 @@ export type OsStatus =
   | 'Em Manutenção'
   | 'Finalizada'
   | 'Entregues'
+  | 'Concluído'
   | 'Sem Conserto'
   | 'Cancelada';
 

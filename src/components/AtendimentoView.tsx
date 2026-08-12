@@ -16,6 +16,9 @@ import {
   AlertCircle,
   Edit,
   Trash2,
+  GripVertical,
+  Clock,
+  CheckSquare,
 } from 'lucide-react';
 import { ServiceOrder, Client, Printer as PrinterType } from '../types';
 import { formatPhone } from '../utils';
@@ -41,21 +44,24 @@ export const AtendimentoView: React.FC = () => {
     currentUser,
   } = useApp();
 
-  const [subView, setSubView] = useState<'os' | 'clientes' | 'impressoras'>(() => {
+  const [subView, setSubView] = useState<'os' | 'concluidos' | 'clientes' | 'impressoras'>(() => {
     if (activeTab === 'impressoras') return 'impressoras';
     if (activeTab === 'clientes') return 'clientes';
+    if (activeTab === 'servicos-concluidos') return 'concluidos';
     return 'os';
   });
 
   React.useEffect(() => {
     if (activeTab === 'impressoras') setSubView('impressoras');
     else if (activeTab === 'clientes') setSubView('clientes');
+    else if (activeTab === 'servicos-concluidos') setSubView('concluidos');
     else if (activeTab === 'atendimento-os') setSubView('os');
   }, [activeTab]);
 
-  const handleSubViewChange = (view: 'os' | 'clientes' | 'impressoras') => {
+  const handleSubViewChange = (view: 'os' | 'concluidos' | 'clientes' | 'impressoras') => {
     setSubView(view);
     if (view === 'os') setActiveTab('atendimento-os');
+    else if (view === 'concluidos') setActiveTab('servicos-concluidos');
     else if (view === 'clientes') setActiveTab('clientes');
     else if (view === 'impressoras') setActiveTab('impressoras');
   };
@@ -103,11 +109,118 @@ export const AtendimentoView: React.FC = () => {
   // Payment form state
   const [paymentMethod, setPaymentMethod] = useState<'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito' | 'Boleto'>('PIX');
 
+  // Drag and drop states for Kanban
+  const [draggedOsId, setDraggedOsId] = useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+
+  const KANBAN_COLUMNS: {
+    id: string;
+    title: string;
+    headerBg: string;
+    borderCol: string;
+    badgeBg: string;
+    badgeText: string;
+    targetStatus: ServiceOrder['status'];
+    matchingStatuses: ServiceOrder['status'][];
+  }[] = [
+    {
+      id: 'aguardando-atendimento',
+      title: 'Aguardando Atendimento',
+      headerBg: 'bg-amber-500 text-white',
+      borderCol: 'border-amber-200 bg-amber-50/20',
+      badgeBg: 'bg-amber-100',
+      badgeText: 'text-amber-900',
+      targetStatus: 'Aguardando Atendimento',
+      matchingStatuses: ['Aguardando Atendimento'],
+    },
+    {
+      id: 'aguardando-orcamento',
+      title: 'Aguardando Orçamento',
+      headerBg: 'bg-purple-600 text-white',
+      borderCol: 'border-purple-200 bg-purple-50/20',
+      badgeBg: 'bg-purple-100',
+      badgeText: 'text-purple-900',
+      targetStatus: 'Aguardando Orçamento',
+      matchingStatuses: ['Aguardando Orçamento', 'Aguardando Aprovação', 'Em Manutenção'],
+    },
+    {
+      id: 'orcamento-aprovado',
+      title: 'Orçamento Aprovado',
+      headerBg: 'bg-indigo-600 text-white',
+      borderCol: 'border-indigo-200 bg-indigo-50/20',
+      badgeBg: 'bg-indigo-100',
+      badgeText: 'text-indigo-900',
+      targetStatus: 'Orçamento Aprovado',
+      matchingStatuses: ['Orçamento Aprovado', 'Finalizada'],
+    },
+    {
+      id: 'orcamento-reprovado',
+      title: 'Orçamento Reprovado',
+      headerBg: 'bg-red-600 text-white',
+      borderCol: 'border-red-200 bg-red-50/20',
+      badgeBg: 'bg-red-100',
+      badgeText: 'text-red-900',
+      targetStatus: 'Orçamento Não Aprovado',
+      matchingStatuses: ['Orçamento Não Aprovado', 'Sem Conserto', 'Cancelada'],
+    },
+    {
+      id: 'concluido',
+      title: 'Concluído',
+      headerBg: 'bg-emerald-600 text-white',
+      borderCol: 'border-emerald-200 bg-emerald-50/20',
+      badgeBg: 'bg-emerald-100',
+      badgeText: 'text-emerald-900',
+      targetStatus: 'Entregues',
+      matchingStatuses: ['Concluído', 'Entregues'],
+    },
+  ];
+
+  const handleDragStart = (e: React.DragEvent, osId: string) => {
+    e.dataTransfer.setData('text/plain', osId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedOsId(osId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverColumnId !== columnId) {
+      setDragOverColumnId(columnId);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOverColumnId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStatus: ServiceOrder['status']) => {
+    e.preventDefault();
+    const osId = e.dataTransfer.getData('text/plain') || draggedOsId;
+    if (osId) {
+      updateServiceOrder(osId, { status: targetStatus });
+    }
+    setDraggedOsId(null);
+    setDragOverColumnId(null);
+  };
+
   // Filtered lists
-  const filteredOs = serviceOrders.filter((os) => {
-    const matchSearch = os.osNumber.toLowerCase().includes(searchTerm.toLowerCase()) || os.reportedDefect.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = statusFilter === 'todos' || os.status === statusFilter;
-    return matchSearch && matchStatus;
+  const activeOsList = serviceOrders.filter((os) => !['Entregues', 'Concluído'].includes(os.status));
+  const concludedOsList = serviceOrders.filter((os) => {
+    const isConcluded = ['Entregues', 'Concluído'].includes(os.status);
+    if (!isConcluded) return false;
+    if (!searchTerm.trim()) return true;
+
+    const client = clients.find((c) => c.id === os.clientId);
+    const printer = printers.find((p) => p.id === os.printerId);
+    const query = searchTerm.toLowerCase();
+
+    return (
+      os.osNumber.toLowerCase().includes(query) ||
+      (client && client.name.toLowerCase().includes(query)) ||
+      (printer && (printer.model.toLowerCase().includes(query) || printer.brand.toLowerCase().includes(query))) ||
+      os.reportedDefect.toLowerCase().includes(query)
+    );
   });
 
   const filteredClients = clients.filter(
@@ -319,7 +432,16 @@ export const AtendimentoView: React.FC = () => {
             }`}
           >
             <FileText className="w-4 h-4" />
-            Ordens de Serviço ({serviceOrders.length})
+            Ordens de Serviço ({activeOsList.length})
+          </button>
+          <button
+            onClick={() => handleSubViewChange('concluidos')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+              subView === 'concluidos' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            Serviços Concluídos ({concludedOsList.length})
           </button>
           <button
             onClick={() => handleSubViewChange('clientes')}
@@ -372,158 +494,231 @@ export const AtendimentoView: React.FC = () => {
         </div>
       </div>
 
-      {/* Search and Filters Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-96">
+      {/* Search Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
+        <div className="relative w-full">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Pesquisar por número OS, cliente, modelo ou série..."
+            placeholder="Pesquisar por número OS, cliente, modelo de impressora ou defeito..."
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
         </div>
-
-        {subView === 'os' && (
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            {['todos', 'Aguardando Atendimento', 'Em Manutenção', 'Aguardando Aprovação', 'Orçamento Aprovado', 'Orçamento Não Aprovado', 'Sem Conserto', 'Finalizada', 'Entregues'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize whitespace-nowrap transition-all ${
-                  statusFilter === st ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {st}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* SubView: Ordens de Serviço */}
+      {/* SubView: Ordens de Serviço (Kanban Flowchart) */}
       {subView === 'os' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start overflow-x-auto pb-6 custom-scrollbar">
+          {KANBAN_COLUMNS.map((col) => {
+            const colOs = serviceOrders.filter((os) => {
+              const matchesStatus = col.matchingStatuses.includes(os.status);
+              if (!matchesStatus) return false;
+
+              if (!searchTerm.trim()) return true;
+
+              const client = clients.find((c) => c.id === os.clientId);
+              const printer = printers.find((p) => p.id === os.printerId);
+              const query = searchTerm.toLowerCase();
+
+              return (
+                os.osNumber.toLowerCase().includes(query) ||
+                (client && client.name.toLowerCase().includes(query)) ||
+                (printer && (printer.model.toLowerCase().includes(query) || printer.brand.toLowerCase().includes(query))) ||
+                os.reportedDefect.toLowerCase().includes(query)
+              );
+            });
+
+            const isDragOver = dragOverColumnId === col.id;
+
+            return (
+              <div
+                key={col.id}
+                onDragOver={(e) => handleDragOver(e, col.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, col.targetStatus)}
+                className={`flex flex-col rounded-2xl border transition-all min-w-[250px] bg-slate-100/70 shadow-2xs ${
+                  isDragOver ? 'ring-2 ring-blue-500 border-blue-400 bg-blue-50/50' : 'border-slate-200'
+                }`}
+              >
+                {/* Column Header */}
+                <div className={`p-3 rounded-t-2xl border-b font-bold text-xs flex items-center justify-between ${col.headerBg}`}>
+                  <span className="truncate pr-2">{col.title}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${col.badgeBg} ${col.badgeText}`}>
+                    {colOs.length}
+                  </span>
+                </div>
+
+                {/* Cards Dropzone */}
+                <div className="p-3 space-y-3 min-h-[460px] flex-1 flex flex-col">
+                  {colOs.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-white/40">
+                      <FileText className="w-6 h-6 mb-1 opacity-40" />
+                      <span className="text-[11px] font-medium">Nenhuma OS</span>
+                    </div>
+                  ) : (
+                    colOs.map((os) => {
+                      const client = clients.find((c) => c.id === os.clientId);
+                      const printer = printers.find((p) => p.id === os.printerId);
+                      const isDraggingThis = draggedOsId === os.id;
+
+                      return (
+                        <div
+                          key={os.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, os.id)}
+                          onDragEnd={() => {
+                            setDraggedOsId(null);
+                            setDragOverColumnId(null);
+                          }}
+                          onClick={() => {
+                            setSelectedOs(os);
+                            setIsOsDetailsModalOpen(true);
+                          }}
+                          className={`p-3.5 bg-white hover:bg-slate-50/90 border rounded-xl shadow-2xs cursor-grab active:cursor-grabbing transition-all space-y-2.5 hover:shadow-md hover:border-blue-400 ${
+                            isDraggingThis ? 'opacity-40 border-dashed border-blue-400' : 'border-slate-200'
+                          }`}
+                        >
+                          {/* Top Row: OS Number & Priority */}
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-mono font-extrabold text-xs text-blue-600 flex items-center gap-1">
+                              <GripVertical className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                              {os.osNumber}
+                            </span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                os.priority === 'Urgente'
+                                  ? 'bg-red-100 text-red-700'
+                                  : os.priority === 'Alta'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : os.priority === 'Média'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {os.priority}
+                            </span>
+                          </div>
+
+                          {/* Middle Info */}
+                          <div className="space-y-1 text-xs">
+                            <div className="font-bold text-slate-800 line-clamp-1" title={client?.name}>
+                              {client?.name || 'Cliente N/D'}
+                            </div>
+                            <div className="text-[11px] text-slate-600 flex items-center gap-1 font-medium line-clamp-1">
+                              <PrinterIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                              {printer ? `${printer.brand} ${printer.model}` : 'Impressora N/D'}
+                            </div>
+                          </div>
+
+                          {/* Bottom Info: Date & Amount */}
+                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                            <span className="flex items-center gap-1 text-[10px]">
+                              <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                              {new Date(os.createdAt).toLocaleDateString('pt-BR')}
+                            </span>
+                            <span className="font-extrabold text-xs text-slate-900">
+                              {os.totalAmount > 0 ? `R$ ${os.totalAmount.toFixed(2)}` : 'A definir'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* SubView: Serviços Concluídos (Lista) */}
+      {subView === 'concluidos' && (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
+              <h2 className="font-bold text-sm">Serviços Concluídos</h2>
+            </div>
+            <span className="text-xs text-slate-300 font-medium bg-slate-800 px-3 py-1 rounded-full">
+              Total de concluídos: {concludedOsList.length}
+            </span>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
                   <th className="py-3.5 px-4">Nº OS</th>
-                  <th className="py-3.5 px-4">Data / Prioridade</th>
                   <th className="py-3.5 px-4">Cliente</th>
                   <th className="py-3.5 px-4">Impressora</th>
-                  <th className="py-3.5 px-4">Defeito Relatado</th>
-                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Data Entrada / Conclusão</th>
                   <th className="py-3.5 px-4">Valor Total</th>
+                  <th className="py-3.5 px-4">Status Pagamento</th>
                   <th className="py-3.5 px-4 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredOs.length === 0 ? (
+                {concludedOsList.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-500">
-                      Nenhuma Ordem de Serviço encontrada.
+                    <td colSpan={7} className="py-8 text-center text-slate-500">
+                      Nenhum serviço concluído encontrado.
                     </td>
                   </tr>
                 ) : (
-                  filteredOs.map((os) => {
+                  concludedOsList.map((os) => {
                     const client = clients.find((c) => c.id === os.clientId);
                     const printer = printers.find((p) => p.id === os.printerId);
-                    const isSuccess = os.status === 'Orçamento Aprovado' || os.status === 'Finalizada' || (os.status === 'Entregues' && os.paid);
-                    const isFailed = os.status === 'Sem Conserto' || os.status === 'Orçamento Não Aprovado' || (os.status === 'Entregues' && !os.paid);
-                    const rowClass = isSuccess 
-                      ? 'bg-emerald-50/60 hover:bg-emerald-100 transition-colors' 
-                      : isFailed 
-                      ? 'bg-red-50/60 hover:bg-red-100 transition-colors' 
-                      : 'hover:bg-slate-50/80 transition-colors';
+                    const dateVal = os.deliveredAt || os.paidAt || os.updatedAt || os.createdAt;
+
                     return (
-                      <tr 
-                        key={os.id} 
-                        className={rowClass}
-                        onDoubleClick={() => {
-                          setSelectedOs(os);
-                          setIsOsDetailsModalOpen(true);
-                        }}
-                      >
+                      <tr key={os.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{os.osNumber}</td>
-                        <td className="py-3.5 px-4">
-                          <div className="text-slate-800">{new Date(os.createdAt).toLocaleDateString('pt-BR')}</div>
-                          <span
-                            className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold ${
-                              os.priority === 'Urgente'
-                                ? 'bg-red-100 text-red-700'
-                                : os.priority === 'Alta'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {os.priority}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-slate-800">{client?.name || 'Cliente não encontrado'}</td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-800">{client?.name || 'Cliente N/D'}</td>
                         <td className="py-3.5 px-4 text-slate-600">
-                          {printer ? `${printer.brand} ${printer.model}` : 'Impressora não encontrada'}
+                          {printer ? `${printer.brand} ${printer.model}` : 'Impressora N/D'}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-600 truncate max-w-xs">{os.reportedDefect}</td>
+                        <td className="py-3.5 px-4 text-slate-700">
+                          <div>Entrada: {new Date(os.createdAt).toLocaleDateString('pt-BR')}</div>
+                          <div className="text-[10px] text-slate-400">Conclusão: {new Date(dateVal).toLocaleDateString('pt-BR')}</div>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900">
+                          R$ {os.totalAmount.toFixed(2)}
+                        </td>
                         <td className="py-3.5 px-4">
-                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold border ${getStatusBadge(os.status)}`}>
-                            {os.status}
-                          </span>
-                        </td>
-                        <td className={`py-3.5 px-4 font-bold ${isFailed ? 'text-red-600' : 'text-slate-800'}`}>
-                          {isFailed ? 'R$ 0,00' : (os.totalAmount > 0 ? `R$ ${os.totalAmount.toFixed(2)}` : 'A definir')}
+                          {os.paid ? (
+                            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">
+                              Pago ({os.paymentMethod || 'Sim'})
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold">
+                              Pendente
+                            </span>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => {
                                 setSelectedOs(os);
+                                setIsOsDetailsModalOpen(true);
+                              }}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg"
+                              title="Ver Detalhes da OS"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedOs(os);
                                 setIsPrintModalOpen(true);
                               }}
                               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg"
-                              title="Imprimir / Emitir OS"
+                              title="Imprimir Comprovante A4"
                             >
                               <Printer className="w-3.5 h-3.5" />
                             </button>
-                            {os.status === 'Aguardando Aprovação' && currentUser?.role === 'admin' && (
-                              <button
-                                onClick={() => {
-                                  setOsForApproval(os);
-                                  setIsApproveModalOpen(true);
-                                }}
-                                className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[11px] font-medium flex items-center gap-1"
-                                title="Aprovar Orçamento"
-                              >
-                                <CheckCircle className="w-3 h-3" /> Aprovar Orçamento
-                              </button>
-                            )}
-                            {os.status === 'Finalizada' && !os.paid && os.totalAmount > 0 && (
-                              <button
-                                onClick={() => {
-                                  setSelectedOs(os);
-                                  setIsPaymentModalOpen(true);
-                                }}
-                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-medium flex items-center gap-1"
-                                title="Receber Pagamento"
-                              >
-                                <DollarSign className="w-3 h-3" /> Receber
-                              </button>
-                            )}
-                            {os.paid && (
-                              <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">
-                                Pago ({os.paymentMethod})
-                              </span>
-                            )}
-                            {((os.status === 'Finalizada' && (os.paid || os.totalAmount === 0)) || os.status === 'Sem Conserto' || os.status === 'Orçamento Não Aprovado') && (
-                              <button
-                                onClick={() => setOsForDeliveryConfirmation(os)}
-                                className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-medium flex items-center gap-1"
-                                title="Finalizar Entrega"
-                              >
-                                <Truck className="w-3 h-3" /> Entregar
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>

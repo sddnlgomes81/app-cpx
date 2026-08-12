@@ -17,6 +17,7 @@ import {
   Printer as PrinterIcon,
   ChevronRight,
   X,
+  CheckCircle,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -33,6 +34,7 @@ export const Sidebar: React.FC = () => {
       title: 'MÓDULO ATENDIMENTO',
       items: [
         { id: 'atendimento-os', label: 'Ordens de Serviço', icon: Headphones },
+        { id: 'servicos-concluidos', label: 'Serviços Concluídos', icon: CheckCircle },
         { id: 'clientes', label: 'Clientes', icon: Users },
         { id: 'impressoras', label: 'Impressoras', icon: PrinterIcon },
       ],

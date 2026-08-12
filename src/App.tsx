@@ -60,6 +60,7 @@ const MainContent: React.FC = () => {
       case 'dashboard':
         return <DashboardView />;
       case 'atendimento-os':
+      case 'servicos-concluidos':
       case 'clientes':
       case 'impressoras':
         return <AtendimentoView />;
