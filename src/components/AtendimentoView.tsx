@@ -1673,10 +1673,26 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
       <div className="text-center pt-4 text-[10px] text-slate-600 border-t border-slate-200 leading-relaxed max-w-4xl mx-auto space-y-4">
         {companySettings.printFooter && <div className="mb-2">{companySettings.printFooter}</div>}
         
-        <div className="text-justify font-medium">
+        <div className="text-justify font-medium space-y-2">
           <div className="font-bold text-center mb-1 uppercase tracking-wider text-slate-800">Garantia</div>
-          Este serviço possui garantia de 90 (noventa) dias, contados a partir da data de emissão deste comprovante, 
-          cobrindo exclusivamente o serviço e as peças aqui descritas.
+          <p>
+            O serviço prestado possui garantia de 90 (noventa) dias corridos,
+            contados a partir da data de emissão deste comprovante.
+          </p>
+          <p>
+            A garantia cobre exclusivamente o serviço executado e as peças
+            substituídas, descritos neste documento, e é válida somente em
+            caso de defeito relacionado ao serviço realizado.
+          </p>
+          <p>
+            A garantia não cobre danos causados por mau uso, quedas, contato
+            com líquidos, oscilação de energia elétrica, uso de suprimentos
+            não recomendados ou intervenção técnica de terceiros após a
+            realização deste serviço.
+          </p>
+          <p>
+            Para acionar a garantia, o cliente deve apresentar este comprovante.
+          </p>
         </div>
 
         <div className="text-justify font-medium mt-6 border-t border-slate-200 pt-4">
