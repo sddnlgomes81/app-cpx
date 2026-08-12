@@ -87,11 +87,15 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen print:h-auto bg-slate-100 overflow-hidden print:overflow-visible font-sans">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto">{renderActiveView()}</main>
+    <div className="flex h-screen print:h-auto bg-slate-100 overflow-hidden print:overflow-visible font-sans print:bg-white">
+      <div className="print:hidden flex shrink-0">
+        <Sidebar />
+      </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible">
+        <div className="print:hidden">
+          <Header />
+        </div>
+        <main className="flex-1 overflow-y-auto print:overflow-visible">{renderActiveView()}</main>
       </div>
     </div>
   );

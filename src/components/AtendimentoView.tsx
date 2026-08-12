@@ -69,7 +69,6 @@ export const AtendimentoView: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isConfirmPaymentModalOpen, setIsConfirmPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-  const [isThermalPrint, setIsThermalPrint] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isOsDetailsModalOpen, setIsOsDetailsModalOpen] = useState(false);
@@ -227,7 +226,6 @@ export const AtendimentoView: React.FC = () => {
 
     // Open print modal with the new OS
     setSelectedOs(newOs);
-    setIsThermalPrint(false);
     setIsPrintModalOpen(true);
     setTimeout(() => {
       window.print();
@@ -259,7 +257,6 @@ export const AtendimentoView: React.FC = () => {
     setIsConfirmPaymentModalOpen(false);
     
     if (shouldPrint) {
-      setIsThermalPrint(true);
       setIsPrintModalOpen(true);
       setTimeout(() => {
         window.print();
@@ -310,8 +307,9 @@ export const AtendimentoView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 bg-slate-50 min-h-full">
-      {/* Module Navigation Tabs */}
+    <div className="p-4 sm:p-8 bg-slate-50 min-h-full print:p-0 print:bg-transparent">
+      <div className="space-y-6 print:hidden">
+        {/* Module Navigation Tabs */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 shrink-0 w-full lg:w-auto custom-scrollbar">
           <button
@@ -481,7 +479,6 @@ export const AtendimentoView: React.FC = () => {
                             <button
                               onClick={() => {
                                 setSelectedOs(os);
-                                setIsThermalPrint(false);
                                 setIsPrintModalOpen(true);
                               }}
                               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg"
@@ -644,6 +641,7 @@ export const AtendimentoView: React.FC = () => {
           })}
         </div>
       )}
+      </div>
 
       {/* Modal: Detalhes da OS */}
       {isOsDetailsModalOpen && selectedOs && (
@@ -1382,20 +1380,6 @@ export const AtendimentoView: React.FC = () => {
               <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
                 <div className="flex items-center gap-4">
                   <h3 className="font-bold text-base">Comprovante de OS</h3>
-                  <div className="flex items-center bg-slate-800 rounded-lg p-1">
-                    <button
-                      onClick={() => setIsThermalPrint(false)}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${!isThermalPrint ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                    >
-                      A4
-                    </button>
-                    <button
-                      onClick={() => setIsThermalPrint(true)}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${isThermalPrint ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
-                    >
-                      Térmica
-                    </button>
-                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1411,55 +1395,34 @@ export const AtendimentoView: React.FC = () => {
               </div>
 
               <div className="p-8 overflow-y-auto space-y-6 text-xs text-slate-700">
-                {isThermalPrint ? (
-                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-                ) : (
-                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-                )}
+                <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
               </div>
             </div>
           </div>
 
-          {/* Versão de Impressão (print-only) - 2 Vias */}
-          <div className={`print-only print-content bg-white ${isThermalPrint ? 'thermal-print-container' : ''}`}>
-            {isThermalPrint && (
-              <style>{`
-                @media print {
-                  @page {
-                    margin: 0;
-                    size: 80mm auto;
-                  }
-                  body {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    width: 80mm !important;
-                  }
-                  .print-content {
-                    width: 80mm !important;
-                    height: auto !important;
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    padding: 2mm !important;
-                  }
+          {/* Versão de Impressão (print-only) - 1 Via A4 */}
+          <div className="print-only print-content bg-white">
+            <style>{`
+              @media print {
+                @page {
+                  size: A4;
+                  margin: 15mm;
                 }
-              `}</style>
-            )}
+                body {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                }
+                .print-content {
+                  width: 100% !important;
+                  height: auto !important;
+                  position: relative !important;
+                }
+              }
+            `}</style>
             
-            {isThermalPrint ? (
-              <div className="pb-4 px-1 pt-1">
-                <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
-              </div>
-            ) : (
-              <>
-                <div className="h-[50vh] overflow-hidden p-6 border-b border-dashed border-slate-300 box-border flex flex-col justify-center">
-                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
-                </div>
-                <div className="h-[50vh] overflow-hidden p-6 box-border flex flex-col justify-center">
-                  <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
-                </div>
-              </>
-            )}
+            <div className="p-6">
+              <ReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} isPrintView />
+            </div>
           </div>
         </>
       )}
@@ -1707,119 +1670,48 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
         </div>
       </div>
 
-      <div className="text-center pt-4 text-[9px] text-slate-500 border-t border-slate-200 leading-tight">
-        {companySettings.printFooter}
-        <div className="mt-2 font-semibold text-slate-700">ASSINATURA DO CLIENTE: _____________________________________________________</div>
-      </div>
-    </div>
-  );
-}
-
-function ThermalReceiptContent({ selectedOs, companySettings, clients, printers, viaLabel }: any) {
-  const c = clients.find((x: any) => x.id === selectedOs.clientId);
-  const p = printers.find((x: any) => x.id === selectedOs.printerId);
-  const isFailed = selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado' || (selectedOs.status === 'Entregues' && !selectedOs.paid);
-  const emissionDate = selectedOs.paidAt
-    ? new Date(selectedOs.paidAt).toLocaleString('pt-BR')
-    : new Date().toLocaleString('pt-BR');
-
-  return (
-    <div className="text-black bg-white mx-auto p-1 font-bold" style={{ width: '74mm', fontFamily: "'Courier New', Courier, monospace", fontSize: '11px', lineHeight: '1.3' }}>
-      {viaLabel && (
-        <div className="text-center font-black text-[10px] uppercase mb-1.5 tracking-wider border-b border-black pb-0.5">
-          [ {viaLabel} ]
-        </div>
-      )}
-
-      {/* 1. Cabeçalho */}
-      <div className="text-center pb-2 border-b border-black border-dashed mb-2">
-        {companySettings.logoUrl && (
-          <img
-            src={companySettings.logoUrl}
-            alt="Logo"
-            className="max-w-[110px] max-h-[50px] mx-auto mb-1 object-contain grayscale"
-            style={{ filter: 'grayscale(100%) brightness(0.5) contrast(1.5)' }}
-          />
-        )}
-        <h1 className="font-black text-xs uppercase">{companySettings.tradeName}</h1>
-        {companySettings.address && <p className="text-[10px]">{companySettings.address}</p>}
-        {companySettings.cnpj && <p className="text-[10px]">CNPJ: {companySettings.cnpj}</p>}
-        {companySettings.phone && <p className="text-[10px]">Tel: {companySettings.phone}</p>}
-        <p className="text-[10px] mt-1 font-black">Data/Hora: {emissionDate}</p>
-      </div>
-
-      {/* 2. Dados da Ordem de Serviço */}
-      <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <div className="font-black text-xs">OS N°: {selectedOs.osNumber}</div>
-      </div>
-
-      {/* 3. Dados do Cliente */}
-      <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <h2 className="font-black uppercase text-[10px] mb-0.5">Dados do Cliente</h2>
-        <div><span className="font-black">Nome:</span> {c ? c.name : 'N/A'}</div>
-        <div><span className="font-black">Tel:</span> {c ? c.phone : 'N/A'}</div>
-        {c?.document && <div><span className="font-black">CPF/CNPJ:</span> {c.document}</div>}
-      </div>
-
-      {/* 4. Dados do Equipamento */}
-      <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <h2 className="font-black uppercase text-[10px] mb-0.5">Equipamento</h2>
-        <div><span className="font-black">Modelo:</span> {p ? `${p.brand} ${p.model}` : 'N/A'}</div>
-        <div><span className="font-black">N° de Série:</span> {p ? p.serialNumber : 'N/A'}</div>
-      </div>
-
-      {/* 5. Serviço Realizado & Valores */}
-      <div className="mb-2 pb-1 border-b border-black border-dashed">
-        <h2 className="font-black uppercase text-[10px] mb-0.5">Serviço / Valores</h2>
-        <div className="mb-1">
-          <span className="font-black">Serviço:</span> {selectedOs.reportedDefect || 'Manutenção e Reparo'}
+      <div className="text-center pt-4 text-[10px] text-slate-600 border-t border-slate-200 leading-relaxed max-w-4xl mx-auto space-y-4">
+        {companySettings.printFooter && <div className="mb-2">{companySettings.printFooter}</div>}
+        
+        <div className="text-justify font-medium">
+          <div className="font-bold text-center mb-1 uppercase tracking-wider text-slate-800">Garantia</div>
+          Este serviço possui garantia de 90 (noventa) dias, contados a partir da data de emissão deste comprovante, 
+          cobrindo exclusivamente o serviço e as peças aqui descritas.
         </div>
 
-        {selectedOs.usedParts && selectedOs.usedParts.length > 0 && (
-          <div className="my-1.5 pt-1 border-t border-black border-dotted">
-            <div className="font-black text-[10px] mb-0.5">Peças Trocadas:</div>
-            {selectedOs.usedParts.map((part: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-[10px] pl-1">
-                <span>{part.quantity}x {part.productName}</span>
-                <span>R$ {part.totalPrice.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex justify-between text-[10px] mt-1 pt-1 border-t border-black border-dotted">
-          <span>Mão de Obra:</span>
-          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.laborCost.toFixed(2)}`}</span>
-        </div>
-
-        <div className="flex justify-between font-black text-xs mt-1 pt-1 border-t border-black">
-          <span>VALOR TOTAL:</span>
-          <span>{isFailed ? 'R$ 0,00' : `R$ ${selectedOs.totalAmount.toFixed(2)}`}</span>
-        </div>
-
-        {selectedOs.paid && (
-          <div className="text-center font-black mt-1.5 text-[10px] bg-slate-100 py-0.5 border border-black">
-            PAGO VIA {selectedOs.paymentMethod?.toUpperCase() || 'DINHEIRO'}
-          </div>
-        )}
-      </div>
-
-      {/* 6. Texto Padrão de Garantia */}
-      <div className="mb-3 pt-1 border-b border-black border-dashed pb-2 text-[10px] leading-tight text-justify">
-        <div className="font-black text-center mb-1">GARANTIA</div>
-        <p>
-          Este serviço possui garantia de 90 (noventa) dias, contados a partir da data de emissão deste comprovante, cobrindo exclusivamente o serviço e as peças aqui descritas.
-        </p>
-      </div>
-
-      {/* 7. Texto Padrão de Assinatura */}
-      <div className="pt-1 text-[10px] text-center pb-2">
-        <p className="leading-tight mb-6 text-justify font-bold">
+        <div className="text-justify font-medium mt-4">
           Declaro que recebi o equipamento acima descrito, em perfeitas condições de funcionamento.
-        </p>
-        <div className="border-t border-black w-4/5 mx-auto mb-1"></div>
-        <div className="font-black">Assinatura do Cliente</div>
+        </div>
+        <div className="mt-6 mb-8 flex justify-center">
+          <div className="w-80 border-t border-slate-800 pt-1 text-center font-bold text-slate-800">
+            Assinatura do Cliente
+          </div>
+        </div>
+
+        <div className="text-justify font-medium mt-6 border-t border-slate-200 pt-4">
+          <div className="font-bold text-center mb-2 uppercase tracking-wider text-slate-800">Aviso Sobre Retirada do Equipamento</div>
+          <p className="mb-2">
+            Após a comunicação do orçamento, o cliente terá o prazo de 10 (dez) dias corridos para retirar a impressora, 
+            caso o orçamento não seja aprovado.
+          </p>
+          <p className="mb-2">
+            Após esse prazo, será cobrada uma taxa de R$ 10,00 (dez reais) por dia de permanência do equipamento em nossas dependências.
+          </p>
+          <p className="mb-2">
+            Caso o equipamento não seja retirado no prazo máximo de 90 (noventa) dias, contados a partir da data de comunicação do orçamento, 
+            a impressora poderá ser descartada, sem direito a reclamação ou devolução de valores.
+          </p>
+          <p>
+            Ao deixar o equipamento para avaliação, o cliente declara estar ciente e de acordo com estas condições.
+          </p>
+        </div>
+        <div className="mt-8 pb-4 flex justify-center">
+          <div className="w-80 border-t border-slate-800 pt-1 text-center font-bold text-slate-800">
+            Assinatura do Cliente
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
