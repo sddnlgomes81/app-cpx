@@ -75,6 +75,7 @@ export const AtendimentoView: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isConfirmPaymentModalOpen, setIsConfirmPaymentModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isThermalPrintModalOpen, setIsThermalPrintModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isOsDetailsModalOpen, setIsOsDetailsModalOpen] = useState(false);
@@ -370,7 +371,7 @@ export const AtendimentoView: React.FC = () => {
     setIsConfirmPaymentModalOpen(false);
     
     if (shouldPrint) {
-      setIsPrintModalOpen(true);
+      setIsThermalPrintModalOpen(true);
       setTimeout(() => {
         window.print();
       }, 500);
@@ -958,6 +959,72 @@ export const AtendimentoView: React.FC = () => {
                 })()}
               </div>
 
+            </div>
+
+            <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsPrintModalOpen(true)}
+                  className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold flex items-center gap-2"
+                  title="Imprimir Comprovante A4"
+                >
+                  <Printer className="w-4 h-4" /> Comprovante OS
+                </button>
+                {selectedOs.paid && (
+                  <button
+                    onClick={() => setIsThermalPrintModalOpen(true)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-md shadow-slate-900/20"
+                    title="Imprimir Cupom Térmico"
+                  >
+                    <Printer className="w-4 h-4" /> Cupom de Pagamento
+                  </button>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {selectedOs.status === 'Aguardando Aprovação' && currentUser?.role === 'admin' && (
+                  <button
+                    onClick={() => {
+                      setOsForApproval(selectedOs);
+                      setIsApproveModalOpen(true);
+                      setIsOsDetailsModalOpen(false);
+                    }}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold flex items-center gap-2"
+                    title="Aprovar Orçamento"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Aprovar Orçamento
+                  </button>
+                )}
+                {selectedOs.status === 'Finalizada' && !selectedOs.paid && selectedOs.totalAmount > 0 && (
+                  <button
+                    onClick={() => {
+                      setIsPaymentModalOpen(true);
+                      setIsOsDetailsModalOpen(false);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center gap-2"
+                    title="Receber Pagamento"
+                  >
+                    <DollarSign className="w-4 h-4" /> Receber Pagamento
+                  </button>
+                )}
+                {selectedOs.paid && (
+                  <span className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-sm font-bold">
+                    Pago ({selectedOs.paymentMethod})
+                  </span>
+                )}
+                {((selectedOs.status === 'Finalizada' && (selectedOs.paid || selectedOs.totalAmount === 0)) || selectedOs.status === 'Sem Conserto' || selectedOs.status === 'Orçamento Não Aprovado') && (
+                  <button
+                    onClick={() => {
+                      setOsForDeliveryConfirmation(selectedOs);
+                      setIsOsDetailsModalOpen(false);
+                    }}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold flex items-center gap-2"
+                    title="Finalizar Entrega"
+                  >
+                    <Truck className="w-4 h-4" /> Finalizar Entrega
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1622,6 +1689,60 @@ export const AtendimentoView: React.FC = () => {
         </>
       )}
 
+      {/* Modal: Comprovante de Pagamento (Térmico 80mm) */}
+      {isThermalPrintModalOpen && selectedOs && (
+        <>
+          {/* Tela (no-print) */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 no-print">
+            <div className="w-full max-w-sm bg-slate-100 rounded-3xl shadow-2xl border border-slate-300 overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
+                <div className="flex items-center gap-4">
+                  <h3 className="font-bold text-base">Comprovante de Pagamento</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePrint}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium flex items-center gap-1.5"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Imprimir
+                  </button>
+                  <button onClick={() => setIsThermalPrintModalOpen(false)} className="p-1 hover:bg-slate-800 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 overflow-y-auto flex-1 flex justify-center">
+                <div className="bg-white shadow-md border border-slate-200">
+                  <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Versão de Impressão (print-only) - Térmica 80mm */}
+          <div className="print-only thermal-print-content bg-white">
+            <style>{`
+              @media print {
+                @page {
+                  size: 80mm auto;
+                  margin: 0;
+                }
+                body {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 80mm !important;
+                }
+                .thermal-print-content {
+                  width: 80mm !important;
+                }
+              }
+            `}</style>
+            <ThermalReceiptContent selectedOs={selectedOs} companySettings={companySettings} clients={clients} printers={printers} />
+          </div>
+        </>
+      )}
+
       {/* Modal: Histórico */}
       {isHistoryModalOpen && selectedClientHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
@@ -1912,6 +2033,103 @@ function ReceiptContent({ selectedOs, companySettings, clients, printers, isPrin
             Assinatura do Cliente
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ThermalReceiptContent({ selectedOs, companySettings, clients, printers }: any) {
+  const c = clients.find((x: any) => x.id === selectedOs.clientId);
+  const p = printers.find((x: any) => x.id === selectedOs.printerId);
+
+  return (
+    <div className="w-[80mm] bg-white text-black font-mono text-[11px] leading-tight p-2 mx-auto">
+      {/* 1. Cabeçalho */}
+      <div className="text-center mb-4">
+        {companySettings.logoUrl && (
+          <img src={companySettings.logoUrl} alt="Logo" className="max-w-[120px] max-h-[60px] mx-auto mb-2 object-contain grayscale" />
+        )}
+        <div className="font-bold text-[13px]">{companySettings.tradeName}</div>
+        <div>{companySettings.address}</div>
+        <div>CNPJ: {companySettings.cnpj}</div>
+        <div>Tel: {companySettings.phone}</div>
+        <div className="mt-2 text-[10px]">Emissão: {new Date().toLocaleString('pt-BR')}</div>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2"></div>
+
+      <div className="text-center font-bold text-[13px] mb-2 uppercase">
+        Comprovante de Pagamento
+        <br />
+        OS Nº {selectedOs.osNumber}
+      </div>
+
+      <div className="border-t border-dashed border-black my-2"></div>
+
+      {/* 2. Dados do cliente */}
+      <div className="mb-2">
+        <div className="font-bold">CLIENTE:</div>
+        <div>{c?.name || 'Não informado'}</div>
+        <div>Tel: {c?.phone || 'Não informado'}</div>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2"></div>
+
+      {/* 3. Dados do equipamento */}
+      <div className="mb-2">
+        <div className="font-bold">EQUIPAMENTO:</div>
+        <div>{p?.brand} {p?.model}</div>
+        <div>S/N: {p?.serialNumber || 'N/A'}</div>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2"></div>
+
+      {/* 4. Valores */}
+      <div className="mb-2">
+        <div className="font-bold mb-1">VALORES:</div>
+        {selectedOs.usedParts && selectedOs.usedParts.length > 0 && (
+          <div className="mb-1">
+            <div className="underline mb-0.5">Peças/Componentes:</div>
+            {selectedOs.usedParts.map((part: any, idx: number) => (
+              <div key={idx} className="flex justify-between">
+                <span className="truncate pr-1">{part.quantity}x {part.productName}</span>
+                <span>R${part.totalPrice.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-black">
+          <span>Mão de Obra:</span>
+          <span>R${selectedOs.laborCost.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between font-extrabold text-[15px] mt-2 pt-1 border-t border-black">
+          <span>TOTAL:</span>
+          <span>R${selectedOs.totalAmount.toFixed(2)}</span>
+        </div>
+        {selectedOs.paid && (
+          <div className="text-center font-bold text-[11px] mt-2">
+            PAGO VIA {selectedOs.paymentMethod?.toUpperCase()}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-dashed border-black my-3"></div>
+
+      {/* 5. Termo de garantia */}
+      <div className="mt-4 p-2 border-2 border-black text-center font-bold">
+        <div className="text-[13px] mb-2 uppercase">Garantia</div>
+        <div className="text-[11px] uppercase text-justify leading-tight">
+          O serviço prestado possui garantia de 90 (noventa) dias
+          corridos, contados a partir da data de emissão deste
+          comprovante.
+          <br /><br />
+          A garantia cobre exclusivamente o serviço executado e as
+          peças substituídas, descritos neste documento.
+        </div>
+      </div>
+      
+      <div className="text-center text-[9px] mt-4">
+        Obrigado pela preferência!
       </div>
     </div>
   );
